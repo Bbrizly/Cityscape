@@ -1,0 +1,9 @@
+[submodule "thirdparty"]
+	path = thirdparty
+	url = https://github.com/UPEIGraphics/thirdparty.git
+[submodule "samplefw"]
+	path = samplefw
+	url = https://github.com/UPEIGraphics/samplefw.git
+[submodule "wolf"]
+	path = wolf
+	url = https://github.com/UPEIGraphics/wolf.git

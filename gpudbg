@@ -1,0 +1,12 @@
+TFILE="$(basename $0).$$.tmp"
+mkdir -p profiles/
+renderdoccmd capture -d . -c profiles/$TFILE -w build/sample && renderdoc profiles/$TFILE*
+
+while true; do
+    read -p "Do you want to keep this profile? " yn
+    case $yn in
+        [Yy]* ) mkdir -p profiles/saved; mv profiles/$TFILE* profiles/saved/; break;;
+        [Nn]* ) rm profiles/$TFILE*; exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
