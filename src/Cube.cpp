@@ -187,19 +187,22 @@ void Cube::init(GLuint program) {
 }
 
 void Cube::draw(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
-    // glUseProgram(m_program);
+    glUseProgram(m_program);
     glBindVertexArray(m_vao);
 
     glm::mat4 model = getTransformationMatrix();
-    GLint program;
-    glGetIntegerv(GL_CURRENT_PROGRAM,&program);
+    // GLint program;
+    // glGetIntegerv(GL_CURRENT_PROGRAM,&program);
 
-    glUniformMatrix4fv(glGetUniformLocation(program, "projection"), 1, GL_FALSE, glm::value_ptr(proj));
-    glUniformMatrix4fv(glGetUniformLocation(program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(glGetUniformLocation(program, "world"), 1, GL_FALSE, glm::value_ptr(model));
-    glUniform1f(glGetUniformLocation(program, "u_time"), m_timer);
+    glUniformMatrix4fv(glGetUniformLocation(m_program, "projection"), 1, GL_FALSE, glm::value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(m_program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(m_program, "world"), 1, GL_FALSE, glm::value_ptr(model));
+    glUniform1f(glGetUniformLocation(m_program, "u_time"), m_timer);
 
     glDrawArrays(GL_TRIANGLES, 0, m_vertices.size());
+
+    glBindVertexArray(0);
+    glUseProgram(0);
 }
 
 // Setters for cube transformation properties: position, rotation axis, rotation and scale

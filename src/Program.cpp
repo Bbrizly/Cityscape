@@ -21,7 +21,7 @@ Program::~Program()
 CityGen city;
 void Program::init()
 {
-    if(!cubeShader || !floorShader)
+    if(!cubeShader || !otherShader)
     {
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
@@ -30,6 +30,7 @@ void Program::init()
 
         // m_program = wolf::LoadShaders("data/planeAnimation.vsh", "data/planeAnimation.fsh");
         cubeShader = wolf::LoadShaders("data/cube.vsh", "data/cube.fsh");
+        otherShader = wolf::LoadShaders("data/floor.vsh", "data/floor.fsh");
         city.generate(cubeShader);
 
         // floorShader = wolf::LoadShaders("data/floor.vsh", "data/floor.fsh");
@@ -67,4 +68,9 @@ void Program::render(int width, int height)
 void Program::PressOne()
 {
     city.reGenerate();
+}
+
+void Program::PressTwo()
+{
+    city.deGenerate();
 }

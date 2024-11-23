@@ -63,6 +63,7 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "variant": "cpp",
-        "ios": "cpp"
+        "ios": "cpp",
+        "ratio": "cpp"
     }
 }

@@ -1,0 +1,21 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='800' height='800' viewBox='-500 -500 1000 1000'>
+<rect x='-500' y='-500' width='1000' height='1000' fill='white' stroke='black'/>
+<polygon points='84.4893,-358.602 ' fill='rgb(149.533,68.1621,158.87)' stroke='black'/>
+<polygon points='-390.036,0.0662911 ' fill='rgb(73.1921,140.691,71.5142)' stroke='black'/>
+<polygon points='176.613,-283.469 176.613,-283.469 176.613,-283.469 ' fill='rgb(77.2309,190.541,66.6066)' stroke='black'/>
+<circle cx='141.128' cy='-380.073' r='5' fill='red'/>
+<circle cx='200.93' cy='-347.855' r='5' fill='red'/>
+<circle cx='84.4893' cy='-358.602' r='5' fill='red'/>
+<circle cx='-321.985' cy='403.794' r='5' fill='red'/>
+<circle cx='-390.036' cy='0.0662911' r='5' fill='red'/>
+<circle cx='23.4906' cy='336.197' r='5' fill='red'/>
+<circle cx='-87.9339' cy='-214.072' r='5' fill='red'/>
+<circle cx='-260.585' cy='-96.3095' r='5' fill='red'/>
+<circle cx='442.411' cy='356.134' r='5' fill='red'/>
+<circle cx='307.354' cy='-74.5059' r='5' fill='red'/>
+<circle cx='150.74' cy='72.1965' r='5' fill='red'/>
+<circle cx='176.613' cy='-283.469' r='5' fill='red'/>
+<circle cx='77.4666' cy='114.041' r='5' fill='red'/>
+<circle cx='-324.702' cy='-139.737' r='5' fill='red'/>
+<circle cx='-396.478' cy='32.8293' r='5' fill='red'/>
+</svg>
