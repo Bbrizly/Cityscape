@@ -62,7 +62,6 @@ void Building::init(GLuint program)
 void Building::draw(const glm::mat4& proj, const glm::mat4& view, float m_timer)
 {
     cube.draw(proj,view,m_timer);
-    // cube1.draw(proj,view,m_timer);
 }
 
 void randomBuilding()
