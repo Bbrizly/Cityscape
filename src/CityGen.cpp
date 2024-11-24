@@ -73,11 +73,11 @@ vector<Point> CityGen::findIntersectionsWithBoundary(const Line& line) {
 
     // Define boundary lines
     Line top = {0, 1, -maxY};          // Horizontal: y = maxY
-    Line bottom = {0, 1, -minY};       // Horizontal: y = minY
+    Line bottom = {0, 1, -minY};        // Horizontal: y = minY
     Line left = {1, 0, -minX};         // Vertical: x = minX
-    Line right = {1, 0, -maxX};        // Vertical: x = maxX
+    Line right = {1, 0, -maxX};         // Vertical: x   = maxX
 
-    // Check intersection with each boundary line
+    // Check intersection boundary
     Point intersection;
     if (findLineIntersection(line, top, intersection)) {
         if (intersection.x >= minX && intersection.x <= maxX) {
@@ -99,17 +99,13 @@ vector<Point> CityGen::findIntersectionsWithBoundary(const Line& line) {
             intersections.push_back(intersection);
         }
     }
-    Building b(vec3(intersections[1].x,0.0f,intersections[1].y),5.0f);
-    b.init(m_program);
-    buildings.push_back(b);
-    
-    Building b1(vec3(intersections[0].x,0.0f,intersections[0].y),5.0f);
-    b1.init(m_program);
-    buildings.push_back(b1);
 
     return intersections;
 }
 
+double CityGen::evaluate(const Line& l, const Point& p) {
+    return (l.a * p.x + l.b * p.y + l.c);
+}
 Line CityGen::perpendicularBisector(const Point& p1, const Point& p2) {
     // Midpoint
     double mx = (p1.x + p2.x) / 2.0;
@@ -143,11 +139,6 @@ Line CityGen::perpendicularBisector(const Point& p1, const Point& p2) {
 
     return {a, b, c};
 }
-
-double CityGen::evaluate(const Line& l, const Point& p) {
-    return (l.a * p.x + l.b * p.y + l.c);
-}
-
 bool CityGen::lineSegmentLineIntersection(const Point& p1, const Point& p2, const Line& l1, Point& intersection) {
     double dx = p2.x - p1.x;
     double dy = p2.y - p1.y;
@@ -194,10 +185,10 @@ bool CityGen::lineSegmentLineIntersection(const Point& p1, const Point& p2, cons
 
     return false;
 }
-
 vector<Point> CityGen::clipPolygon(const vector<Point>& polygon, const Line& l, bool keepPositiveSide) 
 {
     vector<Point> newPolygon;
+    
     if (polygon.empty()) {
         cout << "\nPolygon is empty.";
         return newPolygon;
@@ -226,7 +217,7 @@ vector<Point> CityGen::clipPolygon(const vector<Point>& polygon, const Line& l, 
                     newPolygon.push_back(intersection);
                 }
             }
-        } else {
+        }else {
             // If keeping the negative side
             if (currEval <= 0) {
                 if (prevEval > 0) {
@@ -246,76 +237,10 @@ vector<Point> CityGen::clipPolygon(const vector<Point>& polygon, const Line& l, 
                 }
             }
         }
-
-        /*
-        if (currEval >= 0) {
-            if (prevEval < 0) {
-                // Edge crosses the line from outside to inside
-                Point intersection;
-                if (lineSegmentLineIntersection(prev, curr, l, intersection)) {
-                    newPolygon.push_back(intersection);
-                }
-            }
-            // Current point is inside
-            newPolygon.push_back(curr);
-        } else if (prevEval >= 0) {
-            // Edge crosses the line from inside to outside
-            Point intersection;
-            if (lineSegmentLineIntersection(prev, curr, l, intersection)) {
-                newPolygon.push_back(intersection);
-            }
-        }
-        */
         prev = curr;
         prevEval = currEval;
     }
     return newPolygon;
-    /*
-    vector<Point> newPolygon;
-    if (polygon.empty())
-    {cout<<"\nPlygon is empty WTF?"; return newPolygon;}
-
-    Point prev = polygon.back();
-    double prevEval = evaluate(l, prev);
-
-    for (const Point& curr : polygon) {
-        double currEval = evaluate(l, curr);
-
-        cout<<"\nPoint: x:"<<curr.x<<" y:"<<curr.y<<" Eval:"<<currEval<<endl;
-
-        if (currEval >= 0) {
-            if (prevEval < 0) {
-                // Edge crosses the line from outside to inside
-                Point intersection;
-                if (lineSegmentLineIntersection(prev, curr, l, intersection)) {
-                    newPolygon.push_back(intersection);
-                    CreateBuildingsAlongLine(intersection,prev,10.0f);  
-                }
-            }
-            // Current point is inside
-            newPolygon.push_back(curr);
-        } else if (prevEval >= 0) {
-            // Edge crosses the line from inside to outside
-            Point intersection;
-            if (lineSegmentLineIntersection(prev, curr, l, intersection)) {
-                newPolygon.push_back(intersection);
-                CreateBuildingsAlongLine(prev,intersection,10.0f);  
-
-            }
-        }
-        prev = curr;
-        prevEval = currEval;
-    }
-    
-    for (size_t j = 0; j < polygon.size(); ++j) {
-        Point p1 = polygon[j];
-        Point p2 = polygon[(j + 1) % polygon.size()];
-
-        CreateBuildingsAlongLine(p1,p2,10.0f);
-    }
-    
-    return newPolygon;
-    */
 }
 
 void CityGen::computeVoronoiDiagram() {
@@ -352,6 +277,34 @@ void CityGen::computeVoronoiDiagram() {
         }
         cout<<"\n\n\n"<<endl;
         m_voronoiCells[i] = cell;
+    }
+}
+
+void CityGen::computeChunks() {
+    m_voronoiCells;
+    m_chunks;
+
+    for (size_t i = 0; i < m_voronoiCells.size(); i++) {
+
+        vector<Point> chunk = m_voronoiCells[i];
+
+        // for (size_t j = 0; j < m_voronoiCells[i].size(); j++) {
+
+        //     const Point& otherSite = m_sites[j];
+
+        //     Line bisector = perpendicularBisector(site, otherSite);
+
+        //     double eval = evaluate(bisector, site);
+        //     bool keepPositiveSide = eval > 0;
+            
+        //     cell = clipPolygon(cell, bisector, keepPositiveSide);
+
+        //     if (cell.empty()) {
+        //         cout<<"\nCell is empty somefuckinghow";
+        //         break;
+        //     }
+        // }
+        m_chunks[i] = chunk;
     }
 }
 
@@ -418,7 +371,7 @@ void CityGen::buildVertexData() {
 
 void CityGen::generate(GLuint program) {
     m_program = program;
-
+    
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
     m_sites = generateSites(numSites, seed);
 

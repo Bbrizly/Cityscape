@@ -23,15 +23,16 @@ private:
     int m_numVertices;
 
     // Voronoi parameters
-    const int numSites = 5;
-    const double minX = -100.0;
-    const double maxX = 100.0;
-    const double minY = -100.0;
-    const double maxY = 100.0;
+    const int numSites = 11;
+    const double minX = -300.0;
+    const double maxX = 300.0;
+    const double minY = -200.0;
+    const double maxY = 200.0;
     const double epsilon = 1e-9;
 
     vector<Point> m_sites;
     vector<vector<Point>> m_voronoiCells;
+    vector<vector<Point>> m_chunks;
 
     // Functions for Voronoi diagram
     vector<Point> findIntersectionsWithBoundary(const Line& line);
@@ -42,6 +43,7 @@ private:
     bool lineSegmentLineIntersection(const Point& p1, const Point& p2, const Line& l, Point& intersection);
     vector<Point> clipPolygon(const vector<Point>& polygon, const Line& l, bool keepPositiveSide);
     void computeVoronoiDiagram();
+    void computeChunks();
     void buildVertexData();
     
 public:

@@ -64,6 +64,10 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "ios": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "forward_list": "cpp",
+        "list": "cpp"
     }
 }
