@@ -23,7 +23,7 @@ private:
     int m_numVertices;
 
     // Voronoi parameters
-    const int numSites = 11;
+    const int numSites = 25;
     const double minX = -300.0;
     const double maxX = 300.0;
     const double minY = -200.0;
@@ -33,17 +33,36 @@ private:
     vector<Point> m_sites;
     vector<vector<Point>> m_voronoiCells;
     vector<vector<Point>> m_chunks;
+    vector<vector<Point>> m_blocks;
+
+    vector<Line> generateSweepLines(const Point& origin, const Point& direction, double minSpacing, double maxSpacing, double maxDistance);
+
+    bool isConvex(const std::vector<Point>& polygon);
+    Point normalizeVector(double x, double y);
+    Point perpendicularVector(double x, double y);
+    vector<Point> offsetPolygonInward(const vector<Point>& polygon, double offsetDistance);
+
+    vector<Point> scalePolygon(const vector<Point>& polygon, double scaleFactor);
+
 
     // Functions for Voronoi diagram
     vector<Point> findIntersectionsWithBoundary(const Line& line);
+
+    Line CreateLineFromPoints(const Point& p1, const Point& p2);
+
     void CreateBuildingsAlongLine(const Point& start, const Point& end, int numBuildings);
     vector<Point> generateSites(int numSites, unsigned int seed);
     Line perpendicularBisector(const Point& p1, const Point& p2);
     double evaluate(const Line& l, const Point& p);
     bool lineSegmentLineIntersection(const Point& p1, const Point& p2, const Line& l, Point& intersection);
-    vector<Point> clipPolygon(const vector<Point>& polygon, const Line& l, bool keepPositiveSide);
+    // vector<Point> clipPolygon(const vector<Point>& polygon, const Line& l, bool keepPositiveSide);
+    
+    pair<vector<Point>, vector<Point>> clipPolygon(vector<Point> polygon, Line l);
+    vector<vector<Point>> splitToBlocks(vector<Point>& polygon, vector<Line>& sweepLines);
+    
     void computeVoronoiDiagram();
     void computeChunks();
+    void sweepToBlocks();
     void buildVertexData();
     
 public:

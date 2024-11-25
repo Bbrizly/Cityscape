@@ -68,6 +68,16 @@
         "hash_map": "cpp",
         "hash_set": "cpp",
         "forward_list": "cpp",
-        "list": "cpp"
+        "list": "cpp",
+        "bitset": "cpp",
+        "chrono": "cpp",
+        "condition_variable": "cpp",
+        "unordered_set": "cpp",
+        "regex": "cpp",
+        "iomanip": "cpp",
+        "mutex": "cpp",
+        "semaphore": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp"
     }
 }

@@ -209,7 +209,7 @@ public:
         {
             program->PressOne();
         }
-        else if(isKeyJustDown('2') || isKeyJustDown('d'))
+        else if(isKeyJustDown('2') || isKeyJustDown('t'))
         {
             program->PressTwo();
         }
