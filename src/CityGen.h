@@ -17,6 +17,8 @@ struct Edge {Point start, end;};
 class CityGen {
 private:
 
+    GLuint otherShader;
+
     GLuint m_program;
     GLuint m_vao, m_vbo;
     vector<Vertex> m_vertices;
@@ -42,15 +44,15 @@ private:
     Point perpendicularVector(double x, double y);
     vector<Point> offsetPolygonInward(const vector<Point>& polygon, double offsetDistance);
 
-    vector<Point> scalePolygon(const vector<Point>& polygon, double scaleFactor);
-
+    vector<Point> scalePolygon(const vector<Point>& polygon, float scaleFactor);
 
     // Functions for Voronoi diagram
     vector<Point> findIntersectionsWithBoundary(const Line& line);
 
     Line CreateLineFromPoints(const Point& p1, const Point& p2);
 
-    void CreateBuildingsAlongLine(const Point& start, const Point& end, int numBuildings);
+    void CreateCubesAlongLine(const Point& start, const Point& end, int numBuildings);
+
     vector<Point> generateSites(int numSites, unsigned int seed);
     Line perpendicularBisector(const Point& p1, const Point& p2);
     double evaluate(const Line& l, const Point& p);
@@ -64,6 +66,8 @@ private:
     void computeChunks();
     void sweepToBlocks();
     void buildVertexData();
+    void buildBuildings();
+
     
 public:
     void generate(GLuint program);

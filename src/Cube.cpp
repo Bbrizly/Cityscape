@@ -3,13 +3,13 @@ using namespace std;
 using namespace glm;
 /*
 Cube::Cube()
-    : m_position(glm::vec3(0.0f)), m_scale(glm::vec3(1.0f)), m_rotation(glm::vec3(0.0f)), m_color(glm::vec4(1.0f))
+    : m_position(vec3(0.0f)), m_scale(vec3(1.0f)), m_rotation(vec3(0.0f)), m_color(vec4(1.0f))
 {
     createQuads();
 }
 
 // Parameterized constructor
-Cube::Cube(const glm::vec3& position, const glm::vec3& scale, const glm::vec3& rotation, const glm::vec4& color)
+Cube::Cube(const vec3& position, const vec3& scale, const vec3& rotation, const vec4& color)
     : m_position(position), m_scale(scale), m_rotation(rotation), m_color(color)
 {
     createQuads();
@@ -23,9 +23,9 @@ void Cube::init(GLuint program) {
 }
 
 // Render the cube
-void Cube::draw(const glm::mat4& proj, const glm::mat4& view, float m_timer, GLuint program) {
+void Cube::draw(const mat4& proj, const mat4& view, float m_timer, GLuint program) {
     // Calculate the model matrix
-    glm::mat4 model = getModelMatrix();
+    mat4 model = getModelMatrix();
 
     // Use the shader program
     glUseProgram(program);
@@ -36,24 +36,24 @@ void Cube::draw(const glm::mat4& proj, const glm::mat4& view, float m_timer, GLu
     GLint worldLoc = glGetUniformLocation(program, "world");
     GLint timeLoc  = glGetUniformLocation(program, "u_time");
 
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(worldLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, value_ptr(proj));
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, value_ptr(view));
+    glUniformMatrix4fv(worldLoc, 1, GL_FALSE, value_ptr(model));
     glUniform1f(timeLoc, m_timer);
 
     // Draw each quad
     for (auto& quad : m_quads) {
-        quad.draw(glm::mat4(1.0f), program); // Pass identity matrix since transformations are handled in the model matrix
+        quad.draw(mat4(1.0f), program); // Pass identity matrix since transformations are handled in the model matrix
     }
 }
 
 // Setters for transformation properties
-void Cube::setPosition(const glm::vec3& pos) { m_position = pos; }
-void Cube::setScale(const glm::vec3& scl) { m_scale = scl; }
-void Cube::setRotation(const glm::vec3& rot) { m_rotation = rot; }
+void Cube::setPosition(const vec3& pos) { m_position = pos; }
+void Cube::setScale(const vec3& scl) { m_scale = scl; }
+void Cube::setRotation(const vec3& rot) { m_rotation = rot; }
 
 // Set the color of the cube and update all quads
-void Cube::setColor(const glm::vec4& color) {
+void Cube::setColor(const vec4& color) {
     m_color = color;
     for (auto& quad : m_quads) {
         quad.setColor(color);
@@ -61,19 +61,19 @@ void Cube::setColor(const glm::vec4& color) {
 }
 
 // Calculate the model matrix based on position, scale, and rotation
-glm::mat4 Cube::getModelMatrix() const {
-    glm::mat4 model = glm::mat4(1.0f);
+mat4 Cube::getModelMatrix() const {
+    mat4 model = mat4(1.0f);
 
     // Apply translations
-    model = glm::translate(model, m_position);
+    model = translate(model, m_position);
 
     // Apply rotations (Euler angles in degrees)
-    model = glm::rotate(model, glm::radians(m_rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(m_rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(m_rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    model = rotate(model, radians(m_rotation.x), vec3(1.0f, 0.0f, 0.0f));
+    model = rotate(model, radians(m_rotation.y), vec3(0.0f, 1.0f, 0.0f));
+    model = rotate(model, radians(m_rotation.z), vec3(0.0f, 0.0f, 1.0f));
 
     // Apply scaling
-    model = glm::scale(model, m_scale);
+    model = scale(model, m_scale);
 
     return model;
 }
@@ -145,19 +145,19 @@ vector<Vertex> m_vertices = {
 Cube::Cube()
     : m_position(vec3(0.0f)), m_scale(vec3(1.0f)), m_rotation(vec3(1.0f)), m_color(vec4(1.0f)) {}
 
-Cube::Cube(const glm::vec3& position, const glm::vec3& scale, const glm::vec3& rotation, const glm::vec4& color)
+Cube::Cube(const vec3& position, const vec3& scale, const vec3& rotation, const vec4& color)
     : m_position(position), m_scale(scale), m_rotation(rotation), m_color(color) {}
 
 // Calculates and returns the transformation matrix for the cube, combining translation, rotation, and scaling
-glm::mat4 Cube::getTransformationMatrix() const {
-    glm::mat4 model = glm::translate(glm::mat4(1.0f), m_position);
-    model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+mat4 Cube::getTransformationMatrix() const {
+    mat4 model = translate(mat4(1.0f), m_position);
+    model = rotate(model, radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
 
-    // model = glm::rotate(model, glm::radians(m_rotation.x), m_rotationAxis);
-    // model = glm::rotate(model, glm::radians(m_rotation.y), m_rotationAxis);
-    // model = glm::rotate(model, glm::radians(m_rotation.z), m_rotationAxis);
+    // model = rotate(model, radians(m_rotation.x), m_rotationAxis);
+    // model = rotate(model, radians(m_rotation.y), m_rotationAxis);
+    // model = rotate(model, radians(m_rotation.z), m_rotationAxis);
 
-    model = glm::scale(model, m_scale);
+    model = scale(model, m_scale);
     return model;
 }
 
@@ -186,17 +186,17 @@ void Cube::init(GLuint program) {
     glEnableVertexAttribArray(colorAttr);
 }
 
-void Cube::draw(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
+void Cube::draw(const mat4& proj, const mat4& view, float m_timer) {
     glUseProgram(m_program);
     glBindVertexArray(m_vao);
 
-    glm::mat4 model = getTransformationMatrix();
+    mat4 model = getTransformationMatrix();
     // GLint program;
     // glGetIntegerv(GL_CURRENT_PROGRAM,&program);
 
-    glUniformMatrix4fv(glGetUniformLocation(m_program, "projection"), 1, GL_FALSE, glm::value_ptr(proj));
-    glUniformMatrix4fv(glGetUniformLocation(m_program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(glGetUniformLocation(m_program, "world"), 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(glGetUniformLocation(m_program, "projection"), 1, GL_FALSE, value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(m_program, "view"), 1, GL_FALSE, value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(m_program, "world"), 1, GL_FALSE, value_ptr(model));
     glUniform1f(glGetUniformLocation(m_program, "u_time"), m_timer);
 
     glDrawArrays(GL_TRIANGLES, 0, m_vertices.size());
@@ -206,17 +206,17 @@ void Cube::draw(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
 }
 
 // Setters for cube transformation properties: position, rotation axis, rotation and scale
-void Cube::setPosition(const glm::vec3& pos) { m_position = pos; }
-// void Cube::setRotationAxis(const glm::vec3& rot) { m_rotationAxis = rot; }
-void Cube::setRotation(const glm::vec3& rot) { m_rotation = rot; }
-void Cube::setScale(const glm::vec3& scl) { m_scale = scl; }
+void Cube::setPosition(const vec3& pos) { m_position = pos; }
+// void Cube::setRotationAxis(const vec3& rot) { m_rotationAxis = rot; }
+void Cube::setRotation(const vec3& rot) { m_rotation = rot; }
+void Cube::setScale(const vec3& scl) { m_scale = scl; }
 
 // // cube color getter
-// glm::vec4 Cube::getColor() { return m_color; }
-// glm::vec3 Cube::getScale() { return m_scale; }
+// vec4 Cube::getColor() { return m_color; }
+// vec3 Cube::getScale() { return m_scale; }
 
 // cube color setter
-void Cube::setColor(const glm::vec4& col) 
+void Cube::setColor(const vec4& col) 
 {
     m_color = col;
     

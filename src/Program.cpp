@@ -48,7 +48,6 @@ void Program::update(float x)
 	m_timer += x;
     
     // if(m_pCamera) {m_pCamera->update(x);}
-
     if (m_pOrbitCam) {m_pOrbitCam->update(x);}
 }
 
@@ -61,7 +60,6 @@ void Program::render(int width, int height)
 
     // mat4 mProj = m_pCamera->getProjMatrix(width, height);
     // mat4 mView = m_pCamera->getViewMatrix();
-
     mat4 mProj = m_pOrbitCam->getProjMatrix(width, height);
     mat4 mView = m_pOrbitCam->getViewMatrix();
 

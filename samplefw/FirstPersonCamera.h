@@ -23,11 +23,14 @@ private:
 
     wolf::App* m_pApp;
 
-    glm::vec3 m_position;  // Camera position
+    glm::vec3 m_position = glm::vec3(0.0f,50.0f,0.0f);  // Camera position
     glm::vec3 m_direction; // Forward direction
     glm::vec3 m_up;        // Up vector
     float m_yaw;           // Rotation around the Y-axis
     float m_pitch;         // Rotation around the X-axis
+
+    float m_normalSpeed = 2.0f;
+    float m_SprintSpeed = 5.0f;
 
     glm::vec2 m_lastMousePos; // Store the last mouse position
     float m_movementSpeed;    // Movement speed

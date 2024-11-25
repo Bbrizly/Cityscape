@@ -17,7 +17,7 @@ FirstPersonCamera::~FirstPersonCamera() {}
 
 void FirstPersonCamera::update(float dt)
 {
-    float speedMultiplier = m_pApp->isKeyDown(GLFW_KEY_LEFT_SHIFT) ? 2.5f : 1.0f;
+    float speedMultiplier = m_pApp->isKeyDown(GLFW_KEY_LEFT_SHIFT) ? m_SprintSpeed : m_normalSpeed;
     float adjustedSpeed = m_movementSpeed * speedMultiplier;
     glm::vec3 right = glm::normalize(glm::cross(m_direction, m_up));
     glm::vec3 forward = glm::normalize(m_direction);

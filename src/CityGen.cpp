@@ -13,11 +13,8 @@
 #include <GLFW/glfw3.h>
 using namespace std;
 using namespace glm;
-
-vector<Building> buildings;
-
-#pragma mathematical utility
-
+vector<Cube> cubes;
+#pragma region mathematical utility
 bool findLineIntersection(const Line& l1, const Line& l2, Point& intersection) {
     // Calculate the determinant
     double det = l1.a * l2.b - l2.a * l1.b;
@@ -128,30 +125,22 @@ bool CityGen::lineSegmentLineIntersection(const Point& p1, const Point& p2, cons
 
     return false;
 }
-
-
 #pragma endregion
-
 #pragma region Debug
-void CityGen::CreateBuildingsAlongLine(const Point& start, const Point& end, int height) {
-    // Calculate the direction vector between start and end points
+void CityGen::CreateCubesAlongLine(const Point& start, const Point& end, int height) {
     glm::vec3 direction(end.x - start.x, 0.0f, end.y - start.y);
 
-    // Normalize the direction vector
     glm::vec3 normalizedDir = glm::normalize(direction);
 
-    // Calculate spacing between buildings
     float lineLength = glm::length(direction);
     float spacing = 5.0f;
-    // float spacing = lineLength / static_cast<float>(numBuildings - 1);
 
     for (int i = 0; i < lineLength/spacing; ++i) {
         glm::vec3 position = glm::vec3(start.x, 0.0f, start.y) + normalizedDir * (spacing * i);
-
-        Building b(position, height);
-        b.init(m_program);
-        buildings.push_back(b);
-
+        
+        Cube c(position, vec3(3.0f,3.0f,height), vec3(0),vec4(1));
+        c.init(m_program);
+        cubes.push_back(c);
     }
 }
 vector<Point> CityGen::findIntersectionsWithBoundary(const Line& line) {
@@ -189,8 +178,7 @@ vector<Point> CityGen::findIntersectionsWithBoundary(const Line& line) {
     return intersections;
 }
 #pragma endregion
-
-#pragma Voronoi steps
+#pragma region Voronoi steps
 vector<Point> CityGen::generateSites(int numSites, unsigned int seed) {
 
     mt19937 gen(seed);
@@ -352,7 +340,7 @@ vector<vector<Point>> CityGen::splitToBlocks(vector<Point>& polygon, vector<Line
     return blocks;
 }
 
-#pragma region Testing
+#pragma region checks
 bool CityGen::isConvex(const std::vector<Point>& polygon) {
     if (polygon.size() < 3) return false;
     bool isConvex = true;
@@ -390,6 +378,8 @@ Point CityGen::normalizeVector(double x, double y) {
 Point CityGen::perpendicularVector(double x, double y) {
     return {-y, x};
 }
+#pragma endregion
+
 vector<Point> CityGen::offsetPolygonInward(const vector<Point>& polygon, double offsetDistance) {
     if (polygon.size() < 3) return {};
 
@@ -431,7 +421,7 @@ vector<Point> CityGen::offsetPolygonInward(const vector<Point>& polygon, double 
     return offsetPolygon;
 }
 
-vector<Point> CityGen::scalePolygon(const vector<Point>& polygon, double scaleFactor) {
+vector<Point> CityGen::scalePolygon(const vector<Point>& polygon, float scaleFactor) {
     if (polygon.empty()) return {};
 
     // Compute centroid
@@ -455,7 +445,6 @@ vector<Point> CityGen::scalePolygon(const vector<Point>& polygon, double scaleFa
     return scaledPolygon;
 }
 
-#pragma endregion
 
 void CityGen::computeChunks() {
     m_voronoiCells;
@@ -479,7 +468,7 @@ void CityGen::computeChunks() {
         // if (!negative.empty()) {
         //     m_chunks.push_back(negative);
         // }
-        m_blocks[i] = scalePolygon(chunk, 0.9f);
+        m_blocks[i] = scalePolygon(chunk, 0.85f);
         // m_blocks[i] = offsetPolygonInward(chunk, 10.0f);
     }
 
@@ -518,9 +507,20 @@ void CityGen::sweepToBlocks()
         }
     }
 }
-
 void CityGen::buildVertexData() {
-    m_vertices.clear();
+    for (size_t i = 0; i < m_blocks.size(); ++i)
+    {
+        const vector<Point>& cell = m_blocks[i];
+
+        for (size_t j = 0; j < cell.size(); ++j) {
+
+            Point p1 = cell[j];
+            Point p2 = cell[(j + 1) % cell.size()];
+
+            CreateCubesAlongLine(p1,p2,2.0f);
+        }
+    }
+    /*m_vertices.clear();
 
     vector<GLubyte> colors = {
         255, 0, 0,   // Red
@@ -534,29 +534,6 @@ void CityGen::buildVertexData() {
         0, 128, 0,   // Dark Green
         128, 128, 128 // Gray
     };
-    m_chunks;
-    m_blocks;
-    // for (size_t i = 0; i < m_blocks.size(); ++i) {
-    //     const vector<Point>& cell = m_blocks[i];
-    //     for (size_t j = 0; j < cell.size(); ++j) {
-    //         Point p1 = cell[j];
-    //         Point p2 = cell[(j + 1) % cell.size()];
-    //         CreateBuildingsAlongLine(p1,p2,5.0f);
-    //     }
-    // }
-    // return;
-    // m_voronoiCells;
-    // m_chunks;
-    // for (size_t i = 0; i < m_chunks.size(); ++i) {
-    //     const vector<Point>& cell = m_chunks[i];
-    //     for (size_t j = 0; j < cell.size(); ++j) {
-    //         Point p1 = cell[j];
-    //         Point p2 = cell[(j + 1) % cell.size()];
-    //         CreateBuildingsAlongLine(p1,p2,10.0f);
-    //     }
-    // }
-    // return;
-
     for (size_t i = 0; i < m_blocks.size(); ++i) {
 
         const vector<Point>& cell = m_blocks[i];
@@ -569,8 +546,6 @@ void CityGen::buildVertexData() {
         for (size_t j = 0; j < cell.size(); ++j) {
             Point p1 = cell[j];
             Point p2 = cell[(j + 1) % cell.size()];
-
-            CreateBuildingsAlongLine(p1,p2,10.0f);
 
             Vertex v1 = { static_cast<GLfloat>(p1.x), static_cast<GLfloat>(p1.y), 0.0f, r, g, b, a };
             Vertex v2 = { static_cast<GLfloat>(p2.x), static_cast<GLfloat>(p2.y), 0.0f, r, g, b, a };
@@ -600,6 +575,7 @@ void CityGen::buildVertexData() {
 
     // Unbind VAO
     glBindVertexArray(0);
+    */
 }
 
 void CityGen::generate(GLuint program) {
@@ -608,11 +584,11 @@ void CityGen::generate(GLuint program) {
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
     m_sites = generateSites(numSites, seed);
 
-    for (const auto& site : m_sites) {
-        Building b(vec3(site.x, 0.0f, site.y), 1000.0f);
-        b.init(m_program);
-        buildings.push_back(b);
-    }
+    // for (const auto& site : m_sites) {
+    //     Cube c(vec3(site.x,0.0f,site.y), vec3(0.0f), vec3(0), vec4(1.0f));
+    //     c.init(m_program);
+    //     cubes.push_back(c);
+    // }
 
     computeVoronoiDiagram();
     computeChunks();
@@ -634,7 +610,7 @@ void CityGen::deGenerate() {
     }
     m_vertices.clear();
     m_sites.clear();
-    buildings.clear();
+    cubes.clear();
     m_voronoiCells.clear();
 }
 void CityGen::reGenerate() {
@@ -659,9 +635,9 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     // glDrawArrays(GL_LINES, 0, m_numVertices);
     glBindVertexArray(0);
 
-    for (auto& building : buildings)
+    for (auto& c : cubes)
     {
-        building.draw(proj, view, m_timer);
+        c.draw(proj, view, m_timer);
     }
     
     glUseProgram(0);
