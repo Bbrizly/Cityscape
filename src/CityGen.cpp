@@ -32,6 +32,7 @@ bool findLineIntersection(const Line& l1, const Line& l2, Point& intersection) {
 double CityGen::evaluate(const Line& l, const Point& p) {
     return (l.a * p.x + l.b * p.y + l.c);
 }
+
 Line CityGen::CreateLineFromPoints(const Point& p1, const Point& p2)
 {
     double dx = p2.x - p1.x;
@@ -44,8 +45,8 @@ Line CityGen::CreateLineFromPoints(const Point& p1, const Point& p2)
     double c = -(a * p1.x + b * p2.y);
 
     return {a, b, c};
-
 }
+
 Line CityGen::perpendicularBisector(const Point& p1, const Point& p2) {
     // Midpoint
     double mx = (p1.x + p2.x) / 2.0;
@@ -445,67 +446,107 @@ vector<Point> CityGen::scalePolygon(const vector<Point>& polygon, float scaleFac
     return scaledPolygon;
 }
 
+Line CityGen::moveToPoint(Line l, double x, double y) {
+        l.c = -(l.a * x + l.b * y);
+        return l;
+    }
+
+Line CityGen::moveLineToCenter(Line l, vector<Point> polygon)
+{
+    if (polygon.empty()) return {};
+
+    // Compute centroid
+    double centroidX = 0.0;
+    double centroidY = 0.0;
+    for (const Point& p : polygon) {
+        centroidX += p.x + 0.5f;
+        centroidY += p.y+ 0.5f;
+    }
+    centroidX /= polygon.size();
+    centroidY /= polygon.size();
+
+    return (moveToPoint(l,centroidX,centroidY));
+}
+
+float CityGen::calculatePolygonArea(const vector<Point>& polygon) {
+    float area = 0.0f;
+    size_t n = polygon.size();
+    for (size_t i = 0; i < n; i++) {
+        const Point& p1 = polygon[i];
+        const Point& p2 = polygon[(i + 1) % n]; // Wrap around
+        area += (p1.x * p2.y - p2.x * p1.y);
+    }
+    return std::abs(area) / 2.0f;
+}
 
 void CityGen::computeChunks() {
-    m_voronoiCells;
-    m_chunks.clear();
-    m_chunks.resize(m_voronoiCells.size());
+    m_chunks = m_voronoiCells;
+
+    unsigned int seed = static_cast<unsigned int>(time(nullptr));
+    mt19937 gen(seed);
+    uniform_int_distribution<int> indexDist;
+
+    size_t currentChunkIndex = 0;
+
+    while (currentChunkIndex < m_chunks.size()) {
+        vector<Point> currentChunk = m_chunks[currentChunkIndex];
+
+        if (currentChunk.empty()) {
+            currentChunkIndex++;
+            continue;
+        }
+
+        if (calculatePolygonArea(currentChunk) >= maximumChunkSize) {
+            cout << "Splitting chunk at index: " << currentChunkIndex << endl;
+            if (currentChunk.size() <= 3) {
+                cout<<"Chunk too small to cut"<<endl;
+                currentChunkIndex++;
+                continue;
+            }
+
+            uniform_int_distribution<int> splitDist(0, static_cast<int>(currentChunk.size() - 1));
+
+            int index = splitDist(gen);
+            int nextIndex = (index + 1) % currentChunk.size();
+
+            Line cut = CreateLineFromPoints(currentChunk[index], currentChunk[nextIndex]);
+            cut = moveLineToCenter(cut, currentChunk);
+
+            auto clipped = clipPolygon(currentChunk, cut);
+            vector<Point> positive = clipped.first;
+            vector<Point> negative = clipped.second;
+
+            if (!positive.empty()) {
+                m_chunks.push_back(positive);
+            }
+            if (!negative.empty()) {
+                m_chunks.push_back(negative);
+            }
+
+            m_chunks.erase(m_chunks.begin() + currentChunkIndex);
+        }
+        else {
+            // Current chunk is within the size limit; move to the next
+            currentChunkIndex++;
+        }
+    }
+}
+
+void CityGen::sweepToBlocks()
+{
     m_blocks.clear();
     m_blocks.resize(m_chunks.size());
 
-    for (size_t i = 0; i < m_voronoiCells.size(); i++) {
-        vector<Point> chunk = m_voronoiCells[i];
-        m_chunks.push_back(chunk);
-
-        // Line cut = CreateLineFromPoints(chunk[0],chunk[1]);
-        // cut = moveLinePerpendicularly(cut, 20.0f);
-        // auto clipped = clipPolygon(chunk, cut);
-        // vector<Point> positive = clipped.first;
-        // vector<Point> negative = clipped.second;
-        // if (!positive.empty()) {
-        //     m_chunks.push_back(positive);
-        // }
-        // if (!negative.empty()) {
-        //     m_chunks.push_back(negative);
-        // }
-        m_blocks[i] = scalePolygon(chunk, 0.85f);
-        // m_blocks[i] = offsetPolygonInward(chunk, 10.0f);
-    }
-
-    // for (size_t i = 0; i < m_chunks.size(); i++)
-    // {
-    //     vector<Point> chunk = offsetPolygonInward(m_chunks[i], 5.0f);
-    //     m_blocks[i] = chunk;
-    //     m_blocks[i] = offsetPolygonInward(chunk, 5.0f);
-    // }
-
-}
-void CityGen::sweepToBlocks()
-{
-    m_voronoiCells;
-    m_chunks;
-    m_blocks.clear();
-
     for (size_t i = 0; i < m_chunks.size(); i++) {
-
-        vector<Point> chunk = m_chunks[i];
-
-        Line cut = CreateLineFromPoints(chunk[0],chunk[1]);
-        
-        cut = moveLinePerpendicularly(cut, 40.0f);
-
-        auto clipped = clipPolygon(chunk, cut);
-
-        vector<Point> positive = clipped.first;
-        vector<Point> negative = clipped.second;
-
-        if (!positive.empty()) {
-            m_blocks.push_back(positive);
-        }
-        if (!negative.empty()) {
-            m_blocks.push_back(negative);
-        }
+        vector<Point> x = m_chunks[i];
+    
+        m_blocks[i] = x;//scalePolygon(x, 0.85f);
     }
+    // Cuts chunks into grids
+
+    
+
+
 }
 void CityGen::buildVertexData() {
     for (size_t i = 0; i < m_blocks.size(); ++i)
@@ -584,17 +625,10 @@ void CityGen::generate(GLuint program) {
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
     m_sites = generateSites(numSites, seed);
 
-    // for (const auto& site : m_sites) {
-    //     Cube c(vec3(site.x,0.0f,site.y), vec3(0.0f), vec3(0), vec4(1.0f));
-    //     c.init(m_program);
-    //     cubes.push_back(c);
-    // }
-
     computeVoronoiDiagram();
     computeChunks();
-    // sweepToBlocks();
+    sweepToBlocks();
     buildVertexData();
-
 }
 
 #pragma Render

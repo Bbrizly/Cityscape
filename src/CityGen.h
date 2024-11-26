@@ -36,6 +36,13 @@ private:
     vector<vector<Point>> m_voronoiCells;
     vector<vector<Point>> m_chunks;
     vector<vector<Point>> m_blocks;
+    
+    Line moveToPoint(Line l, double x, double y);
+    Line moveLineToCenter(Line l, vector<Point> polygon);
+
+    const float maximumChunkSize = 5000.0f;
+
+    float calculatePolygonArea(const vector<Point>& polygon);
 
     vector<Line> generateSweepLines(const Point& origin, const Point& direction, double minSpacing, double maxSpacing, double maxDistance);
 
