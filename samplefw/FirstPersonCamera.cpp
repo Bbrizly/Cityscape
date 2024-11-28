@@ -2,12 +2,12 @@
 
 FirstPersonCamera::FirstPersonCamera(wolf::App* pApp)
     : m_pApp(pApp),
-      m_position(0.0f, 0.0f, 5.0f),
+      m_position(0.0f, 50.0f, 5.0f),
       m_direction(0.0f, 0.0f, -1.0f),
       m_up(0.0f, 1.0f, 0.0f),
       m_yaw(-90.0f),
       m_pitch(0.0f),
-      m_movementSpeed(5.0f),
+      m_movementSpeed(10.0f),
       m_mouseSensitivity(0.1f)
 {
     m_lastMousePos = m_pApp->getMousePos();

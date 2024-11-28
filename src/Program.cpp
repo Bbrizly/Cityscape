@@ -24,7 +24,8 @@ void Program::init()
     if(!cubeShader || !otherShader)
     {
         glEnable(GL_DEPTH_TEST);
-        glDisable(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
+        // glDisable(GL_CULL_FACE);
         glDepthFunc(GL_LESS);
         // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -39,7 +40,7 @@ void Program::init()
         // m_pCamera = new FirstPersonCamera(m_pApp);
 
         m_pOrbitCam = new OrbitCamera(m_pApp);
-        m_pOrbitCam->focusOn(vec3(-5.0f, -5.0f, -5.0f), vec3(5.0f, 5.0f, 5.0f));
+        m_pOrbitCam->focusOn(vec3(-5.0f, -5.0f, -5.0f), vec3(0.0f, 100.0f, 0.0f));
     }
 }
 
@@ -53,7 +54,8 @@ void Program::update(float x)
 
 void Program::render(int width, int height)
 {
-    glClearColor(0.3f, 0.3f, 0.3f, 1.0);
+    // glClearColor(0.3f, 0.3f, 0.3f, 1.0);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(cubeShader);
@@ -62,6 +64,8 @@ void Program::render(int width, int height)
     // mat4 mView = m_pCamera->getViewMatrix();
     mat4 mProj = m_pOrbitCam->getProjMatrix(width, height);
     mat4 mView = m_pOrbitCam->getViewMatrix();
+
+    glEnable(GL_DEBUG_OUTPUT);
 
     city.render(mProj,mView,m_timer);
     // floorr.draw(mProj,mView,m_timer);

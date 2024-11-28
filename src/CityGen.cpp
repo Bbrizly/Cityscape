@@ -14,6 +14,7 @@
 using namespace std;
 using namespace glm;
 vector<Cube> cubes;
+
 #pragma region mathematical utility
 bool findLineIntersection(const Line& l1, const Line& l2, Point& intersection) {
     // Calculate the determinant
@@ -37,6 +38,11 @@ Line CityGen::CreateLineFromPoints(const Point& p1, const Point& p2)
 {
     double dx = p2.x - p1.x;
     double dy = p2.y - p1.y;
+
+    if (std::abs(dx) < 1e-9) {
+        // Vertical line equation: x = p1.x
+        return {1.0, 0.0, -p1.x};
+    }
 
     double slope = dy / dx;
 
@@ -126,20 +132,31 @@ bool CityGen::lineSegmentLineIntersection(const Point& p1, const Point& p2, cons
 
     return false;
 }
+Line moveLinePerpendicularly(const Line& line, double distance) {
+    double magnitude = sqrt(line.a * line.a + line.b * line.b);
+    double newC = line.c + distance * magnitude; // Shift the line by the given distance
+    return {line.a, line.b, newC};
+}
+// Line moveLinePerpendicularly(const Line& line, double distance) {
+//     double magnitude = sqrt(line.a * line.a + line.b * line.b);
+//     double newC = line.c + distance * magnitude; // Shift the line by the given distance
+//     return {line.a, line.b, newC};
+// }
 #pragma endregion
+
 #pragma region Debug
 void CityGen::CreateCubesAlongLine(const Point& start, const Point& end, int height) {
     glm::vec3 direction(end.x - start.x, 0.0f, end.y - start.y);
 
-    glm::vec3 normalizedDir = glm::normalize(direction);
+    glm::vec3 normalizedDir = normalize(direction);
 
-    float lineLength = glm::length(direction);
-    float spacing = 5.0f;
+    float lineLength = length(direction);
+    float spacing = 2.5f;
 
     for (int i = 0; i < lineLength/spacing; ++i) {
-        glm::vec3 position = glm::vec3(start.x, 0.0f, start.y) + normalizedDir * (spacing * i);
+        vec3 position = vec3(start.x, 0.0f, start.y) + normalizedDir * (spacing * i);
         
-        Cube c(position, vec3(3.0f,3.0f,height), vec3(0),vec4(1));
+        Cube c(position, vec3(1.0f,1.0f,height), vec3(0),vec4(1));
         c.init(m_program);
         cubes.push_back(c);
     }
@@ -179,6 +196,7 @@ vector<Point> CityGen::findIntersectionsWithBoundary(const Line& line) {
     return intersections;
 }
 #pragma endregion
+
 #pragma region Voronoi steps
 vector<Point> CityGen::generateSites(int numSites, unsigned int seed) {
 
@@ -283,11 +301,6 @@ void CityGen::computeVoronoiDiagram() {
 }
 #pragma endregion
 
-Line moveLinePerpendicularly(const Line& line, double distance) {
-    double magnitude = sqrt(line.a * line.a + line.b * line.b);
-    double newC = line.c + distance * magnitude; // Shift the line by the given distance
-    return {line.a, line.b, newC};
-}
 vector<Line> CityGen::generateSweepLines(const Point& origin, const Point& direction, double minSpacing, double maxSpacing, double maxDistance) {
     std::vector<Line> sweepLines;
     double distance = 0.0;
@@ -451,7 +464,7 @@ Line CityGen::moveToPoint(Line l, double x, double y) {
         return l;
     }
 
-Line CityGen::moveLineToCenter(Line l, vector<Point> polygon)
+pair<double, double> CityGen::getCentroid(vector<Point> polygon)
 {
     if (polygon.empty()) return {};
 
@@ -464,8 +477,13 @@ Line CityGen::moveLineToCenter(Line l, vector<Point> polygon)
     }
     centroidX /= polygon.size();
     centroidY /= polygon.size();
+    return {centroidX, centroidY};
+}
 
-    return (moveToPoint(l,centroidX,centroidY));
+Line CityGen::moveLineToCenter(Line l, vector<Point> polygon)
+{
+    pair<double, double> centroid = getCentroid(polygon);
+    return (moveToPoint(l,centroid.first,centroid.second));
 }
 
 float CityGen::calculatePolygonArea(const vector<Point>& polygon) {
@@ -479,22 +497,79 @@ float CityGen::calculatePolygonArea(const vector<Point>& polygon) {
     return std::abs(area) / 2.0f;
 }
 
+Line CityGen::findLargestEdge(vector<Point> polygon)
+{
+    if (polygon.size() < 2) {
+        std::cerr << "Polygon must have at least two points to form an edge." << std::endl;
+        return {0.0f,0.0f,0.0f};
+    }
+
+    double maxLength = 0.0;
+    std::pair<Point, Point> largestEdge = {polygon[0], polygon[0]};
+
+    size_t n = polygon.size();
+    for (size_t i = 0; i < n; ++i) {
+        const Point& p1 = polygon[i];
+        const Point& p2 = polygon[(i + 1) % n]; // Wrap around to the first point
+
+        // Calculate the distance between p1 and p2
+        double length = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+
+        // Update the largest edge if this one is longer
+        if (length > maxLength) {
+            maxLength = length;
+            largestEdge = {p1, p2};
+        }
+    }
+    
+    debugs2.push_back({largestEdge.first,largestEdge.second});
+
+    return {CreateLineFromPoints(largestEdge.first,largestEdge.second)};
+}
+
+float CityGen::findSmallestEdgeAmount(vector<Point> polygon)
+{
+    if (polygon.size() < 2) {
+        cout<<"Polygon size: "<<polygon.size()<<endl;
+        cerr << "SMALLESTPolygon must have at least two points to form an edge." <<endl;
+        return -1;
+    }
+
+    double minLength = 100.0;
+    std::pair<Point, Point> smallestEdge = {polygon[0], polygon[0]};
+
+    size_t n = polygon.size();
+    for (size_t i = 0; i < n; ++i) {
+        const Point& p1 = polygon[i];
+        const Point& p2 = polygon[(i + 1) % n]; // Wrap around to the first point
+
+        // Calculate the distance between p1 and p2
+        double length = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+
+        // Update the largest edge if this one is longer
+        if (length < minLength) {
+            minLength = length;
+            smallestEdge = {p1, p2};
+        }
+    }
+
+    return minLength;
+}
+
 void CityGen::computeChunks() {
     m_chunks = m_voronoiCells;
 
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
     mt19937 gen(seed);
-    uniform_int_distribution<int> indexDist;
+    std::uniform_int_distribution<int> chanceDist(1, 8);
 
     size_t currentChunkIndex = 0;
 
     while (currentChunkIndex < m_chunks.size()) {
         vector<Point> currentChunk = m_chunks[currentChunkIndex];
-
-        if (currentChunk.empty()) {
-            currentChunkIndex++;
-            continue;
-        }
+        
+        if (currentChunk.empty() || (chanceDist(gen) == 1)) // 1 in 8 chance of skipping step
+        {currentChunkIndex++; continue;}
 
         if (calculatePolygonArea(currentChunk) >= maximumChunkSize) {
             cout << "Splitting chunk at index: " << currentChunkIndex << endl;
@@ -506,7 +581,8 @@ void CityGen::computeChunks() {
 
             uniform_int_distribution<int> splitDist(0, static_cast<int>(currentChunk.size() - 1));
 
-            int index = splitDist(gen);
+            // int index = splitDist(gen);
+            int index = 1; //removed randomizing
             int nextIndex = (index + 1) % currentChunk.size();
 
             Line cut = CreateLineFromPoints(currentChunk[index], currentChunk[nextIndex]);
@@ -534,21 +610,120 @@ void CityGen::computeChunks() {
 
 void CityGen::sweepToBlocks()
 {
+    m_chunks = m_voronoiCells;
     m_blocks.clear();
     m_blocks.resize(m_chunks.size());
+    m_buildings;
 
     for (size_t i = 0; i < m_chunks.size(); i++) {
         vector<Point> x = m_chunks[i];
     
-        m_blocks[i] = x;//scalePolygon(x, 0.85f);
+        m_chunks[i] = scalePolygon(x, 0.85f);
+        // m_blocks[i] = scalePolygon(x, 0.85f);
     }
-    // Cuts chunks into grids
 
-    
+    Line largestEdge;
 
+  // Cuts chunks into blocks
+    for (size_t i = 0; i < m_chunks.size(); i++) {
+        vector<Point> x = m_chunks[i];
+        //chunk number 1
+        //find its longest edge
+        //create line from edge
+        largestEdge = findLargestEdge(x);
+        cout<<"Heyheyehy"<<endl;
+        //find edge inward direction
+        //eat shit and die
+
+        int moveAmount = 20.0f;
+        int iterationAmount = 0;
+        float minEdge = 2.0f;
+
+        // float pArea = calculatePolygonArea(clipped.first);
+        // float nArea = calculatePolygonArea(clipped.second);
+
+        pair<double, double> center = getCentroid(x);
+
+        double eval = evaluate(largestEdge, {center.first,center.second});
+        bool keepPositiveSide = eval > 0;
+
+        double moveDirection = (keepPositiveSide ? 1.0 : -1.0);
+        
+        cout<<"b4 - keep Positive Side: "<<keepPositiveSide<<endl;
+
+        // largestEdge = moveLinePerpendicularly(largestEdge, moveAmount * moveDirection);
+
+        while(true)
+        {
+            cout << "Before move: Line: " << largestEdge.a << "x + " << largestEdge.b << "y + " << largestEdge.c << " = 0" << endl;
+            debugs.push_back(findIntersectionsWithBoundary(largestEdge));
+            // Move the line
+            largestEdge = moveLinePerpendicularly(largestEdge, moveAmount * moveDirection);
+            // debugs.push_back(findIntersectionsWithBoundary(largestEdge));
+            cout<<"Move amount: "<<moveAmount<<" MoveDir: " <<moveDirection<<endl;
+
+            cout << "After move: Line: " << largestEdge.a << "x + " << largestEdge.b << "y + " << largestEdge.c << " = 0" << endl;
+
+            iterationAmount++;
+            auto clipped = clipPolygon(x, largestEdge);
+            vector<Point> positive = clipped.first;
+            vector<Point> negative = clipped.second;
+
+            if((positive.empty() && negative.empty()))
+                {cout<<"1 termination 1"<<endl; break;}
+            
+            float drawPos = findSmallestEdgeAmount(positive);
+            float drawNeg = findSmallestEdgeAmount(negative);
+
+            cout<<"Smallest Positive Edge: "<<drawPos
+            <<"\nSmallest Negative Edge: "<<drawNeg<<endl;
+
+            // if((drawPos < minEdge )|| ( drawNeg < minEdge))
+            // //|| positive.size() < 4) || negative.size() < 4))
+            if((drawPos <= minEdge && positive.size() <= 4)|| ( drawNeg <= minEdge && negative.size() <= 4))
+            //|| positive.size() < 4) || negative.size() < 4))
+            {
+                cout<<"---a"<<endl;
+                m_blocks.push_back(x);
+                x.clear();
+            }
+            else if(keepPositiveSide)
+            {
+                cout<<"---b\n"<<endl;
+                if(positive.empty()) {cout<<"2 termination 2"<<endl; break;}
+
+                m_blocks.push_back(negative);
+                x = positive;
+            }else
+            {
+                cout<<"---c\n"<<endl;
+                if(negative.empty()) {cout<<"3 termination 3"<<endl; break;}
+
+                m_blocks.push_back(positive);
+                x = negative;
+            
+            }
+        }
+
+        //Get perpendicular of line, move to centeroid of polygon
+        float distance = iterationAmount * moveAmount;
+        //move line by distance ^ 
+        //
+        
+
+        //Move line inward, cut:
+            //save behind chunk,
+            //repeat from move inward on front chunk
+        //once front chunk is null, stop.
+        // m_blocks.push_back(x);
+    }
+
+    // Cuts blocks into buildings
+    // USE Perpendicular of largestEdge and sweep over the polygon
 
 }
 void CityGen::buildVertexData() {
+    /*
     for (size_t i = 0; i < m_blocks.size(); ++i)
     {
         const vector<Point>& cell = m_blocks[i];
@@ -561,21 +736,37 @@ void CityGen::buildVertexData() {
             CreateCubesAlongLine(p1,p2,2.0f);
         }
     }
-    /*m_vertices.clear();
+    */
+    // /*
+    m_vertices.clear();
 
     vector<GLubyte> colors = {
-        255, 0, 0,   // Red
-        0, 255, 0,   // Green
-        0, 0, 255,   // Blue
-        255, 255, 0, // Yellow
-        255, 0, 255, // Magenta
-        0, 255, 255, // Cyan
-        128, 0, 128, // Purple
-        255, 165, 0, // Orange
-        0, 128, 0,   // Dark Green
-        128, 128, 128 // Gray
-    };
+    // 255, 0, 0,     // Bright Red
+    0, 255, 0,     // Bright Green
+    0, 0, 255,     // Bright Blue
+    255, 255, 0,   // Bright Yellow
+    255, 0, 255,   // Bright Magenta
+    0, 255, 255,   // Bright Cyan
+    191, 0, 191,   // Vibrant Purple
+    255, 140, 0,   // Vibrant Orange
+    0, 200, 0,     // Bright Green (adjusted)
+    200, 200, 200  // Light Gray (stands out against black)
+    };  
+
+    // vector<GLubyte> colors = {
+    //     255, 0, 0,   // Red
+    //     0, 255, 0,   // Green
+    //     0, 0, 255,   // Blue
+    //     255, 255, 0, // Yellow
+    //     255, 0, 255, // Magenta
+    //     0, 255, 255, // Cyan
+    //     128, 0, 128, // Purple
+    //     255, 165, 0, // Orange
+    //     0, 128, 0,   // Dark Green
+    //     128, 128, 128 // Gray
+    // };
     for (size_t i = 0; i < m_blocks.size(); ++i) {
+
 
         const vector<Point>& cell = m_blocks[i];
         
@@ -588,15 +779,35 @@ void CityGen::buildVertexData() {
             Point p1 = cell[j];
             Point p2 = cell[(j + 1) % cell.size()];
 
-            Vertex v1 = { static_cast<GLfloat>(p1.x), static_cast<GLfloat>(p1.y), 0.0f, r, g, b, a };
-            Vertex v2 = { static_cast<GLfloat>(p2.x), static_cast<GLfloat>(p2.y), 0.0f, r, g, b, a };
+            Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a };
+            Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a };
 
             m_vertices.push_back(v1);
             m_vertices.push_back(v2);
-        }
+        }   
+    }
+    for (size_t j = 0; j < debugs.size(); ++j)
+    {
+        if(debugs[j].empty()) break;
+        Point p1 = debugs[j][0];
+        Point p2 = debugs[j][1];
+        Vertex v1 = { static_cast<GLfloat>(p1.x), 10.0f, static_cast<GLfloat>(p1.y), 255, 0, 0, 255};
+        Vertex v2 = { static_cast<GLfloat>(p2.x), 10.0f, static_cast<GLfloat>(p2.y), 255, 0, 0, 255};
+        m_vertices.push_back(v1);
+        m_vertices.push_back(v2);
+    }
+    for (size_t j = 0; j < debugs2.size(); ++j)
+    {
+        if(debugs2[j].empty()) break;
+        Point p1 = debugs2[j][0];
+        Point p2 = debugs2[j][1];
+        Vertex v1 = { static_cast<GLfloat>(p1.x), 20.0f, static_cast<GLfloat>(p1.y), 0, 255, 0, 255};
+        Vertex v2 = { static_cast<GLfloat>(p2.x), 20.0f, static_cast<GLfloat>(p2.y), 0, 255, 0, 255};
+        m_vertices.push_back(v1);
+        m_vertices.push_back(v2);
     }
 
-    m_numVertices = static_cast<int>(m_vertices.size());// * 5.0f); // sussyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+    m_numVertices = static_cast<int>(m_vertices.size() * 5.0f); // sussyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
 
     // Create and bind VAO and VBO
     glGenVertexArrays(1, &m_vao);
@@ -616,7 +827,7 @@ void CityGen::buildVertexData() {
 
     // Unbind VAO
     glBindVertexArray(0);
-    */
+    // */
 }
 
 void CityGen::generate(GLuint program) {
@@ -625,13 +836,17 @@ void CityGen::generate(GLuint program) {
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
     m_sites = generateSites(numSites, seed);
 
+    // m_sites = {
+    // {-50,-50},
+    // {50,50}};
+
     computeVoronoiDiagram();
     computeChunks();
     sweepToBlocks();
     buildVertexData();
 }
 
-#pragma Render
+#pragma region Render
 void CityGen::deGenerate() {
     // Clean up OpenGL resources
     if (m_vbo) {
@@ -643,6 +858,8 @@ void CityGen::deGenerate() {
         m_vao = 0;
     }
     m_vertices.clear();
+    debugs.clear();
+    debugs2.clear();
     m_sites.clear();
     cubes.clear();
     m_voronoiCells.clear();
@@ -653,26 +870,36 @@ void CityGen::reGenerate() {
 }
 void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
     glUseProgram(m_program);
+    for (auto& c : cubes)
+    {
+        cout<<"\nSEX\n"<<endl;
+        c.draw(proj, view, m_timer);
+    }
 
     // Set uniform variables
     GLint projLoc = glGetUniformLocation(m_program, "projection");
     GLint viewLoc = glGetUniformLocation(m_program, "view");
-    GLint modelLoc = glGetUniformLocation(m_program, "model");
+    GLint worldLoc = glGetUniformLocation(m_program, "world");
+    GLint timeLoc = glGetUniformLocation(m_program, "u_time");
+    // glUniform1f(glGetUniformLocation(m_program, "u_time"), m_timer);
 
-    glm::mat4 model = glm::mat4(1.0f);
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    if (projLoc != -1) glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
+    if (viewLoc != -1) glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    if (worldLoc != -1) glUniformMatrix4fv(worldLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
+    if (timeLoc != -1) glUniformMatrix4fv(timeLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(m_timer)));
 
+    glLineWidth(3.0f); // Set the line thickness to 3.0 (default is 1.0)
+    glEnable(GL_LINE_SMOOTH);
+    // glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     // Bind VAO and draw lines
     glBindVertexArray(m_vao);
-    // glDrawArrays(GL_LINES, 0, m_numVertices);
+    glDrawArrays(GL_LINES, 0, m_numVertices);
     glBindVertexArray(0);
-
-    for (auto& c : cubes)
-    {
-        c.draw(proj, view, m_timer);
-    }
+    
+    // for (auto& c : cubes)
+    // {
+    //     c.draw(proj, view, m_timer);
+    // }
     
     glUseProgram(0);
 }

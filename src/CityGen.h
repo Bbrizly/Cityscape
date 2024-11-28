@@ -7,6 +7,7 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 using namespace std;
+using namespace glm;
 
 struct Point {double x, y;};
 
@@ -17,6 +18,8 @@ struct Edge {Point start, end;};
 class CityGen {
 private:
 
+    vector<vector<Point>> debugs;
+    vector<vector<Point>> debugs2;
     GLuint otherShader;
 
     GLuint m_program;
@@ -25,18 +28,32 @@ private:
     int m_numVertices;
 
     // Voronoi parameters
-    const int numSites = 25;
-    const double minX = -300.0;
-    const double maxX = 300.0;
-    const double minY = -200.0;
-    const double maxY = 200.0;
+    const int numSites = 2;
+    const double minX = -200.0;
+    const double maxX = 200.0;
+    const double minY = -100.0;
+    const double maxY = 100.0;
     const double epsilon = 1e-9;
 
     vector<Point> m_sites;
     vector<vector<Point>> m_voronoiCells;
     vector<vector<Point>> m_chunks;
     vector<vector<Point>> m_blocks;
+    vector<vector<Point>> m_buildings;
     
+    pair<pair<Point, Point>, vec2> getEdgeWithInwardDirection(
+    vector<Point>& polygon,
+    size_t edgeIndex);
+    
+    pair<double, double> getCentroid(vector<Point> polygon);
+
+
+
+    bool isPolygonClockwise(const vector<Point>& polygon);
+    Line findLargestEdge(vector<Point> polygon);
+    float findSmallestEdgeAmount(vector<Point> polygon);
+
+
     Line moveToPoint(Line l, double x, double y);
     Line moveLineToCenter(Line l, vector<Point> polygon);
 
@@ -46,7 +63,7 @@ private:
 
     vector<Line> generateSweepLines(const Point& origin, const Point& direction, double minSpacing, double maxSpacing, double maxDistance);
 
-    bool isConvex(const std::vector<Point>& polygon);
+    bool isConvex(const vector<Point>& polygon);
     Point normalizeVector(double x, double y);
     Point perpendicularVector(double x, double y);
     vector<Point> offsetPolygonInward(const vector<Point>& polygon, double offsetDistance);
@@ -80,5 +97,5 @@ public:
     void generate(GLuint program);
     void deGenerate();
     void reGenerate();
-    void render(const glm::mat4& proj, const glm::mat4& view, float m_timer);
+    void render(const mat4& proj, const mat4& view, float m_timer);
 };
