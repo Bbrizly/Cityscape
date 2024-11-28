@@ -24,8 +24,8 @@ void Program::init()
     if(!cubeShader || !otherShader)
     {
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
-        // glDisable(GL_CULL_FACE);
+        // glEnable(GL_CULL_FACE);
+        glDisable(GL_CULL_FACE);
         glDepthFunc(GL_LESS);
         // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 

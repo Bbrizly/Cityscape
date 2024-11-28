@@ -19,6 +19,7 @@ class CityGen {
 private:
 
     vector<vector<Point>> debugs;
+    vector<vector<Point>> debugs1;
     vector<vector<Point>> debugs2;
     GLuint otherShader;
 
@@ -28,7 +29,7 @@ private:
     int m_numVertices;
 
     // Voronoi parameters
-    const int numSites = 2;
+    const int numSites = 10;
     const double minX = -200.0;
     const double maxX = 200.0;
     const double minY = -100.0;
@@ -40,22 +41,33 @@ private:
     vector<vector<Point>> m_chunks;
     vector<vector<Point>> m_blocks;
     vector<vector<Point>> m_buildings;
+    Point getDirectionVector(const Point& from, const Point& to);
     
     pair<pair<Point, Point>, vec2> getEdgeWithInwardDirection(
     vector<Point>& polygon,
     size_t edgeIndex);
     
-    pair<double, double> getCentroid(vector<Point> polygon);
+    Point getCentroid(vector<Point> polygon);
 
+    Line moveLineInDirection(const Line& line, const Point& direction, double distance);
 
+    bool findSmallestEdgeAmount(vector<Point> polygon, float minEdgeLength);
 
     bool isPolygonClockwise(const vector<Point>& polygon);
-    Line findLargestEdge(vector<Point> polygon);
+    pair<Point,Point> findLargestEdge(vector<Point> polygon);
+    // Line findLargestEdge(vector<Point> polygon);
     float findSmallestEdgeAmount(vector<Point> polygon);
-
-
-    Line moveToPoint(Line l, double x, double y);
+    Point findMidpoint(const Point& p1, const Point& p2);
+    void CreateCube(Point x, float height);
+    Line moveToPoint(Line l, Point p);
     Line moveLineToCenter(Line l, vector<Point> polygon);
+
+    void addDebug1(Point p);
+    void addLineDebug1(Point p1,Point p2);
+
+    void addDebug(Point p);
+    void addLineDebug(Point p1,Point p2);
+    Point movePointInDirection(const Point& point, const Point& direction, double distance);
 
     const float maximumChunkSize = 5000.0f;
 

@@ -53,10 +53,16 @@ Line CityGen::CreateLineFromPoints(const Point& p1, const Point& p2)
     return {a, b, c};
 }
 
-Line CityGen::perpendicularBisector(const Point& p1, const Point& p2) {
-    // Midpoint
+Point CityGen::findMidpoint(const Point& p1, const Point& p2)
+{
     double mx = (p1.x + p2.x) / 2.0;
     double my = (p1.y + p2.y) / 2.0;
+    return {mx,my};
+}
+
+Line CityGen::perpendicularBisector(const Point& p1, const Point& p2) {
+
+    Point midpoint = findMidpoint(p1,p2);
 
     // Slope of the line between p1 and p2
     double dx = p2.x - p1.x;
@@ -64,7 +70,7 @@ Line CityGen::perpendicularBisector(const Point& p1, const Point& p2) {
 
     if (std::abs(dx) < 1e-9) {
         // Vertical line; perpendicular bisector is horizontal
-        return {0.0, 1.0, -my};
+        return {0.0, 1.0, -(midpoint.y)};
     }
 
     double slope = dy / dx;
@@ -75,7 +81,7 @@ Line CityGen::perpendicularBisector(const Point& p1, const Point& p2) {
     // Rearranged to a*x + b*y + c = 0
     double a = -perpSlope;
     double b = 1.0;
-    double c = -(a * mx + b * my);
+    double c = -(a * midpoint.x + b * midpoint.y);
 
     // Ensure the normal vector points towards p1
     if ((a * p1.x + b * p1.y + c) < 0) {
@@ -132,9 +138,53 @@ bool CityGen::lineSegmentLineIntersection(const Point& p1, const Point& p2, cons
 
     return false;
 }
-Line moveLinePerpendicularly(const Line& line, double distance) {
+//---
+
+//---
+
+Point CityGen::getDirectionVector(const Point& from, const Point& to) {
+    // Calculate the raw vector components
+    double dx = to.x - from.x;
+    double dy = to.y - from.y;
+
+    // Compute the magnitude of the vector
+    double magnitude = sqrt(dx * dx + dy * dy);
+
+    // Check for zero-length vector
+    if (magnitude < 1e-9) {
+        cerr << "Error: Zero-length direction vector." << endl;
+        return {0.0, 0.0}; // Return a zero vector in case of error
+    }
+
+    // Normalize the vector
+    return {dx / magnitude, dy / magnitude};
+}
+
+Line moveLinePerpendicularly(const Line& line, double distance, const Point& fixedDirection) {
+    // Compute the magnitude of the line's normal vector (a, b)
     double magnitude = sqrt(line.a * line.a + line.b * line.b);
-    double newC = line.c + distance * magnitude; // Shift the line by the given distance
+    if (magnitude < 1e-9) {
+        cerr << "Invalid line: Normal vector has zero length." << endl;
+        return line;
+    }
+
+    // Normalize the fixed direction vector
+    double dirMagnitude = sqrt(fixedDirection.x * fixedDirection.x + fixedDirection.y * fixedDirection.y);
+    if (dirMagnitude < 1e-9) {
+        cerr << "Invalid fixed direction: Zero-length vector." << endl;
+        return line;
+    }
+    Point normalizedDirection = {fixedDirection.x / dirMagnitude, fixedDirection.y / dirMagnitude};
+
+    // Project the normalized direction onto the line's normal vector
+    double dotProduct = normalizedDirection.x * line.a + normalizedDirection.y * line.b;
+
+    // Calculate signed distance
+    double signedDistance = distance * (dotProduct > 0 ? 1 : -1);
+
+    // Adjust the line's c value
+    double newC = line.c + signedDistance * magnitude;
+
     return {line.a, line.b, newC};
 }
 // Line moveLinePerpendicularly(const Line& line, double distance) {
@@ -143,6 +193,95 @@ Line moveLinePerpendicularly(const Line& line, double distance) {
 //     return {line.a, line.b, newC};
 // }
 #pragma endregion
+
+pair<Point,Point> CityGen::findLargestEdge(vector<Point> polygon)
+{
+    if (polygon.size() < 2) {
+        std::cerr << "Polygon must have at least two points to form an edge." << std::endl;
+        return {{0,0},{0,0}};
+    }
+
+    double maxLength = 0.0;
+    std::pair<Point, Point> largestEdge = {polygon[0], polygon[0]};
+
+    size_t n = polygon.size();
+    for (size_t i = 0; i < n; ++i) {
+        const Point& p1 = polygon[i];
+        const Point& p2 = polygon[(i + 1) % n]; // Wrap around to the first point
+
+        // Calculate the distance between p1 and p2
+        double length = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+
+        // Update the largest edge if this one is longer
+        if (length > maxLength) {
+            maxLength = length;
+            largestEdge = {p1, p2};
+        }
+    }
+    
+    debugs2.push_back({largestEdge.first,largestEdge.second});
+    return largestEdge;
+
+}
+
+// Line CityGen::findLargestEdge(vector<Point> polygon)
+// {
+//     if (polygon.size() < 2) {
+//         std::cerr << "Polygon must have at least two points to form an edge." << std::endl;
+//         return {0.0f,0.0f,0.0f};
+//     }
+//     double maxLength = 0.0;
+//     std::pair<Point, Point> largestEdge = {polygon[0], polygon[0]};
+//     size_t n = polygon.size();
+//     for (size_t i = 0; i < n; ++i) {
+//         const Point& p1 = polygon[i];
+//         const Point& p2 = polygon[(i + 1) % n]; // Wrap around to the first point
+//         // Calculate the distance between p1 and p2
+//         double length = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+//         // Update the largest edge if this one is longer
+//         if (length > maxLength) {
+//             maxLength = length;
+//             largestEdge = {p1, p2};
+//         }
+//     }
+//     debugs2.push_back({largestEdge.first,largestEdge.second});
+//     return {CreateLineFromPoints(largestEdge.first,largestEdge.second)};
+// }
+
+Line CityGen::moveLineInDirection(const Line& line, const Point& direction, double distance) {
+    // Adjust the line's c value by the projection of the displacement onto the normal vector (a, b)
+    double displacement = line.a * direction.x * distance + line.b * direction.y * distance;
+    double newC = line.c + displacement;
+
+    // Return the moved line
+    return {line.a, line.b, newC};
+}
+
+Point CityGen::movePointInDirection(const Point& point, const Point& direction, double distance) {
+    // Normalize the direction vector
+    double magnitude = sqrt(direction.x * direction.x + direction.y * direction.y);
+    if (magnitude < 1e-9) {
+        cerr << "Error: Zero-length direction vector." << endl;
+        return point; // Return the original point if the direction vector is invalid
+    }
+
+    Point normalizedDirection = {direction.x / magnitude, direction.y / magnitude};
+
+    // Compute the new position by moving in the direction
+    double newX = point.x + normalizedDirection.x * distance;
+    double newY = point.y + normalizedDirection.y * distance;
+
+    return {newX, newY};
+}
+
+Line CityGen::moveToPoint(Line l, Point p) {
+    cout << "=1=-FUNKY Line: " << l.a << "x + " << l.b << "y + " << l.c << " = 0" << endl;
+    l.c = -(l.a * p.x + l.b * p.y);
+    cout << "=2=-FUNKY Line: " << l.a << "x + " << l.b << "y + " << l.c << " = 0" << endl;
+    return l;
+}
+
+#pragma region clutter
 
 #pragma region Debug
 void CityGen::CreateCubesAlongLine(const Point& start, const Point& end, int height) {
@@ -212,6 +351,95 @@ vector<Point> CityGen::generateSites(int numSites, unsigned int seed) {
     }
     return sites;
 }
+
+pair<vector<Point>, vector<Point>> CityGen::clipPolygon(vector<Point> polygon, Line l) 
+{
+    vector<Point> polygonPositive;
+    vector<Point> polygonNegative;
+
+    // Debug: Function entry with input polygon and line
+    cout << "Entering clipPolygon function." << endl;
+    cout << "Input Polygon Points: ";
+    for (const auto& p : polygon) {
+        cout << "(" << p.x << ", " << p.y << ") ";
+    }
+    cout << endl;
+    cout << "Clipping Line: " << l.a << "x + " << l.b << "y + " << l.c << " = 0" << endl;
+
+    if (polygon.empty()) {
+        cout << "Debug: The input polygon is empty. Exiting clipPolygon." << endl;
+        return {polygonPositive, polygonNegative};
+    }
+
+    Point prev = polygon.back();
+    double prevEval = evaluate(l, prev);
+
+    // Debug: Initial previous point and its evaluation
+    cout << "Debug: Initial previous point: (" << prev.x << ", " << prev.y << ")" << endl;
+    cout << "Debug: Evaluation of previous point: " << prevEval << endl;
+
+    for (size_t i = 0; i < polygon.size(); ++i) {
+        const Point& curr = polygon[i];
+        double currEval = evaluate(l, curr);
+
+        // Determine which side each point is on
+        bool prevInside = prevEval >= 0;
+        bool currInside = currEval >= 0;
+
+        // Debug: Current point and its evaluation
+        cout << "Debug: Processing Point " << i + 1 << ": (" << curr.x << ", " << curr.y << ")" << endl;
+        cout << "Debug: Evaluation of current point: " << currEval 
+             << " (" << (currInside ? "Inside" : "Outside") << ")" << endl;
+
+        if (currInside) {
+            if (!prevInside) {
+                // Edge crosses from negative to positive
+                Point intersection;
+                if (lineSegmentLineIntersection(prev, curr, l, intersection)) {
+                    polygonPositive.push_back(intersection);
+                    polygonNegative.push_back(intersection);
+                    // Debug: Intersection point when crossing from negative to positive
+                    cout << "Debug: Intersection (Negative to Positive) at (" 
+                         << intersection.x << ", " << intersection.y << ")" << endl;
+                }
+            }
+            // Current point is inside positive side
+            polygonPositive.push_back(curr);
+            // Debug: Adding current point to positive polygon
+            cout << "Debug: Added current point to positive polygon." << endl;
+        }
+        else {
+            if (prevInside) {
+                // Edge crosses from positive to negative
+                Point intersection;
+                if (lineSegmentLineIntersection(prev, curr, l, intersection)) {
+                    polygonPositive.push_back(intersection);
+                    polygonNegative.push_back(intersection);
+                    // Debug: Intersection point when crossing from positive to negative
+                    cout << "Debug: Intersection (Positive to Negative) at (" 
+                         << intersection.x << ", " << intersection.y << ")" << endl;
+                }
+            }
+            // Current point is inside negative side
+            polygonNegative.push_back(curr);
+            // Debug: Adding current point to negative polygon
+            cout << "Debug: Added current point to negative polygon." << endl;
+        }
+
+        // Update previous point and its evaluation for next iteration
+        prev = curr;
+        prevEval = currEval;
+    }
+
+    // Debug: Summary of clipped polygons
+    cout << "Debug: Clipping completed." << endl;
+    cout << "Debug: Positive Polygon has " << polygonPositive.size() << " points." << endl;
+    cout << "Debug: Negative Polygon has " << polygonNegative.size() << " points." << endl;
+
+    return {polygonPositive, polygonNegative};
+}
+
+/*
 pair<vector<Point>, vector<Point>> CityGen::clipPolygon(vector<Point> polygon, Line l) 
 {
     vector<Point> polygonPositive;
@@ -263,6 +491,7 @@ pair<vector<Point>, vector<Point>> CityGen::clipPolygon(vector<Point> polygon, L
 
     return {polygonPositive, polygonNegative};
 }
+*/
 void CityGen::computeVoronoiDiagram() {
     m_voronoiCells.clear();
     m_voronoiCells.resize(m_sites.size());
@@ -459,12 +688,7 @@ vector<Point> CityGen::scalePolygon(const vector<Point>& polygon, float scaleFac
     return scaledPolygon;
 }
 
-Line CityGen::moveToPoint(Line l, double x, double y) {
-        l.c = -(l.a * x + l.b * y);
-        return l;
-    }
-
-pair<double, double> CityGen::getCentroid(vector<Point> polygon)
+Point CityGen::getCentroid(vector<Point> polygon)
 {
     if (polygon.empty()) return {};
 
@@ -482,8 +706,8 @@ pair<double, double> CityGen::getCentroid(vector<Point> polygon)
 
 Line CityGen::moveLineToCenter(Line l, vector<Point> polygon)
 {
-    pair<double, double> centroid = getCentroid(polygon);
-    return (moveToPoint(l,centroid.first,centroid.second));
+    Point centroid = getCentroid(polygon);
+    return (moveToPoint(l, centroid));
 }
 
 float CityGen::calculatePolygonArea(const vector<Point>& polygon) {
@@ -496,38 +720,7 @@ float CityGen::calculatePolygonArea(const vector<Point>& polygon) {
     }
     return std::abs(area) / 2.0f;
 }
-
-Line CityGen::findLargestEdge(vector<Point> polygon)
-{
-    if (polygon.size() < 2) {
-        std::cerr << "Polygon must have at least two points to form an edge." << std::endl;
-        return {0.0f,0.0f,0.0f};
-    }
-
-    double maxLength = 0.0;
-    std::pair<Point, Point> largestEdge = {polygon[0], polygon[0]};
-
-    size_t n = polygon.size();
-    for (size_t i = 0; i < n; ++i) {
-        const Point& p1 = polygon[i];
-        const Point& p2 = polygon[(i + 1) % n]; // Wrap around to the first point
-
-        // Calculate the distance between p1 and p2
-        double length = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
-
-        // Update the largest edge if this one is longer
-        if (length > maxLength) {
-            maxLength = length;
-            largestEdge = {p1, p2};
-        }
-    }
-    
-    debugs2.push_back({largestEdge.first,largestEdge.second});
-
-    return {CreateLineFromPoints(largestEdge.first,largestEdge.second)};
-}
-
-float CityGen::findSmallestEdgeAmount(vector<Point> polygon)
+/*float CityGen::findSmallestEdgeAmount(vector<Point> polygon)
 {
     if (polygon.size() < 2) {
         cout<<"Polygon size: "<<polygon.size()<<endl;
@@ -554,6 +747,57 @@ float CityGen::findSmallestEdgeAmount(vector<Point> polygon)
     }
 
     return minLength;
+}
+*/
+
+bool CityGen::findSmallestEdgeAmount(vector<Point> polygon, float minEdgeLength) {
+    if (polygon.size() < 2) {
+        cout << "Polygon size: " << polygon.size() << endl;
+        cerr << "Polygon must have at least two points to form an edge." << endl;
+        return false; // Return false if the polygon is invalid
+    }
+
+    size_t n = polygon.size();
+    int edgesBelowMin = 0; // Counter for edges below the minimum length
+
+    for (size_t i = 0; i < n; ++i) {
+        const Point& p1 = polygon[i];
+        const Point& p2 = polygon[(i + 1) % n]; // Wrap around to the first point
+
+        // Calculate the distance between p1 and p2
+        double length = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+
+        if (length < minEdgeLength) {
+            edgesBelowMin++;
+            if (edgesBelowMin >= 2) {
+                return true; // Return true if two or more edges are below the minimum
+            }
+        }
+    }
+
+    return false; // Return false if fewer than two edges are below the minimum
+}
+
+void CityGen::addDebug1(Point p)
+{
+    debugs1.push_back({{p.x-5.0f,p.y -5.0f}, {p.x+5.0f,p.y +5.0f}});
+    debugs1.push_back({{p.x-5.0f,p.y +5.0f}, {p.x +5.0f,p.y -5.0f}});
+}
+
+void CityGen::addLineDebug1(Point p1,Point p2)
+{
+    debugs1.push_back({p1,p2});
+}
+
+void CityGen::addDebug(Point p)
+{
+    debugs2.push_back({{p.x-5.0f,p.y -5.0f}, {p.x+5.0f,p.y +5.0f}});
+    debugs2.push_back({{p.x-5.0f,p.y +5.0f}, {p.x +5.0f,p.y -5.0f}});
+}
+
+void CityGen::addLineDebug(Point p1,Point p2)
+{
+    debugs2.push_back({p1,p2});
 }
 
 void CityGen::computeChunks() {
@@ -606,14 +850,22 @@ void CityGen::computeChunks() {
             currentChunkIndex++;
         }
     }
+
+    for (size_t i = 0; i < m_chunks.size(); i++) {
+        vector<Point> x = m_chunks[i];
+    
+        m_chunks[i] = scalePolygon(x, 0.85f);
+        // m_blocks[i] = scalePolygon(x, 0.85f);
+    }
 }
+#pragma endregion
 
 void CityGen::sweepToBlocks()
 {
+    cout<<"\n\n\n\n\nNEW\n\n";
     m_chunks = m_voronoiCells;
     m_blocks.clear();
     m_blocks.resize(m_chunks.size());
-    m_buildings;
 
     for (size_t i = 0; i < m_chunks.size(); i++) {
         vector<Point> x = m_chunks[i];
@@ -622,70 +874,88 @@ void CityGen::sweepToBlocks()
         // m_blocks[i] = scalePolygon(x, 0.85f);
     }
 
-    Line largestEdge;
-
   // Cuts chunks into blocks
     for (size_t i = 0; i < m_chunks.size(); i++) {
         vector<Point> x = m_chunks[i];
-        //chunk number 1
-        //find its longest edge
-        //create line from edge
-        largestEdge = findLargestEdge(x);
-        cout<<"Heyheyehy"<<endl;
-        //find edge inward direction
-        //eat shit and die
 
-        int moveAmount = 20.0f;
+        pair<Point,Point> largestPointPair = findLargestEdge(x);
+
+        Line largestEdge = CreateLineFromPoints(largestPointPair.first,largestPointPair.second);
+
+        Point midpoint = findMidpoint(largestPointPair.first,largestPointPair.second);
+        addDebug1(midpoint);
+        
+        Point centerPoint = getCentroid(x);
+        addDebug1(centerPoint);
+        
+        Point directionVector = getDirectionVector(midpoint,centerPoint);
+        addLineDebug({0,0},directionVector);
+
+        Point goToPoint = midpoint;
+        largestEdge = moveToPoint(largestEdge,goToPoint);
+
+        int moveAmount = 10.0f;
         int iterationAmount = 0;
         float minEdge = 2.0f;
+        bool fuck = false;
 
         // float pArea = calculatePolygonArea(clipped.first);
         // float nArea = calculatePolygonArea(clipped.second);
 
-        pair<double, double> center = getCentroid(x);
-
-        double eval = evaluate(largestEdge, {center.first,center.second});
+        double eval = evaluate(largestEdge, centerPoint);
         bool keepPositiveSide = eval > 0;
 
-        double moveDirection = (keepPositiveSide ? 1.0 : -1.0);
-        
         cout<<"b4 - keep Positive Side: "<<keepPositiveSide<<endl;
-
-        // largestEdge = moveLinePerpendicularly(largestEdge, moveAmount * moveDirection);
 
         while(true)
         {
-            cout << "Before move: Line: " << largestEdge.a << "x + " << largestEdge.b << "y + " << largestEdge.c << " = 0" << endl;
-            debugs.push_back(findIntersectionsWithBoundary(largestEdge));
-            // Move the line
-            largestEdge = moveLinePerpendicularly(largestEdge, moveAmount * moveDirection);
-            // debugs.push_back(findIntersectionsWithBoundary(largestEdge));
-            cout<<"Move amount: "<<moveAmount<<" MoveDir: " <<moveDirection<<endl;
+            cout <<"\n"<<iterationAmount<< " -Before move: Line: " << largestEdge.a << "x + " << largestEdge.b << "y + " << largestEdge.c << " = 0" << endl;
+     
+            cout << "goToPoint before: (" << goToPoint.x << ", " << goToPoint.y << ")\n";
+            goToPoint = movePointInDirection(goToPoint, directionVector, moveAmount);
+            cout << "goToPoint after: (" << goToPoint.x << ", " << goToPoint.y << ")\n";
+            addDebug(goToPoint);
 
+            largestEdge = moveToPoint(largestEdge,goToPoint);
             cout << "After move: Line: " << largestEdge.a << "x + " << largestEdge.b << "y + " << largestEdge.c << " = 0" << endl;
+
+            debugs.push_back(findIntersectionsWithBoundary(largestEdge));
 
             iterationAmount++;
             auto clipped = clipPolygon(x, largestEdge);
             vector<Point> positive = clipped.first;
             vector<Point> negative = clipped.second;
 
+            if (positive.empty() || negative.empty()){
+                cout << "Clipping failed: Positive size: " << positive.size()
+                        << ", Negative size: " << negative.size() << "\n";
+                addDebug1(goToPoint); // Visualize the midpoint and sweep line
+                debugs.push_back(findIntersectionsWithBoundary(largestEdge));
+                debugs1.push_back(positive);
+                debugs1.push_back(negative);
+                fuck = true;
+            }
+
             if((positive.empty() && negative.empty()))
                 {cout<<"1 termination 1"<<endl; break;}
             
-            float drawPos = findSmallestEdgeAmount(positive);
-            float drawNeg = findSmallestEdgeAmount(negative);
+            // float drawPos = findSmallestEdgeAmount(positive);
+            // float drawNeg = findSmallestEdgeAmount(negative);
+            // cout<<"Smallest Positive Edge: "<<drawPos
+            // <<"\nSmallest Negative Edge: "<<drawNeg<<endl;
+            // if((drawPos <= minEdge && positive.size() <= 4) 
+            // || ( drawNeg <= minEdge && negative.size() <= 4))
 
-            cout<<"Smallest Positive Edge: "<<drawPos
-            <<"\nSmallest Negative Edge: "<<drawNeg<<endl;
+            bool drawPos = findSmallestEdgeAmount(positive, minEdge);
+            bool drawNeg = findSmallestEdgeAmount(negative, minEdge);
 
-            // if((drawPos < minEdge )|| ( drawNeg < minEdge))
-            // //|| positive.size() < 4) || negative.size() < 4))
-            if((drawPos <= minEdge && positive.size() <= 4)|| ( drawNeg <= minEdge && negative.size() <= 4))
-            //|| positive.size() < 4) || negative.size() < 4))
+            if((drawPos && positive.size() <= 4) 
+            || ( drawNeg && negative.size() <= 4))
             {
                 cout<<"---a"<<endl;
                 m_blocks.push_back(x);
-                x.clear();
+                // x.clear();
+                break;
             }
             else if(keepPositiveSide)
             {
@@ -701,26 +971,12 @@ void CityGen::sweepToBlocks()
 
                 m_blocks.push_back(positive);
                 x = negative;
-            
             }
+            if(fuck) return;
         }
 
-        //Get perpendicular of line, move to centeroid of polygon
         float distance = iterationAmount * moveAmount;
-        //move line by distance ^ 
-        //
-        
-
-        //Move line inward, cut:
-            //save behind chunk,
-            //repeat from move inward on front chunk
-        //once front chunk is null, stop.
-        // m_blocks.push_back(x);
     }
-
-    // Cuts blocks into buildings
-    // USE Perpendicular of largestEdge and sweep over the polygon
-
 }
 void CityGen::buildVertexData() {
     /*
@@ -788,7 +1044,7 @@ void CityGen::buildVertexData() {
     }
     for (size_t j = 0; j < debugs.size(); ++j)
     {
-        if(debugs[j].empty()) break;
+        if(debugs[j].empty()) continue;
         Point p1 = debugs[j][0];
         Point p2 = debugs[j][1];
         Vertex v1 = { static_cast<GLfloat>(p1.x), 10.0f, static_cast<GLfloat>(p1.y), 255, 0, 0, 255};
@@ -796,18 +1052,28 @@ void CityGen::buildVertexData() {
         m_vertices.push_back(v1);
         m_vertices.push_back(v2);
     }
+    for (size_t j = 0; j < debugs1.size(); ++j)
+    {
+        if(debugs1[j].empty()) continue;
+        Point p1 = debugs1[j][0];
+        Point p2 = debugs1[j][1];
+        Vertex v1 = { static_cast<GLfloat>(p1.x), 20.0f, static_cast<GLfloat>(p1.y), 0, 0, 255, 255};
+        Vertex v2 = { static_cast<GLfloat>(p2.x), 20.0f, static_cast<GLfloat>(p2.y), 0, 0, 255, 255};
+        m_vertices.push_back(v1);
+        m_vertices.push_back(v2);
+    }
     for (size_t j = 0; j < debugs2.size(); ++j)
     {
-        if(debugs2[j].empty()) break;
+        if(debugs2[j].empty()) continue;
         Point p1 = debugs2[j][0];
         Point p2 = debugs2[j][1];
-        Vertex v1 = { static_cast<GLfloat>(p1.x), 20.0f, static_cast<GLfloat>(p1.y), 0, 255, 0, 255};
-        Vertex v2 = { static_cast<GLfloat>(p2.x), 20.0f, static_cast<GLfloat>(p2.y), 0, 255, 0, 255};
+        Vertex v1 = { static_cast<GLfloat>(p1.x), 30.0f, static_cast<GLfloat>(p1.y), 0, 255, 0, 255};
+        Vertex v2 = { static_cast<GLfloat>(p2.x), 30.0f, static_cast<GLfloat>(p2.y), 0, 255, 0, 255};
         m_vertices.push_back(v1);
         m_vertices.push_back(v2);
     }
 
-    m_numVertices = static_cast<int>(m_vertices.size() * 5.0f); // sussyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
+    m_numVertices = static_cast<int>(m_vertices.size());// * 5.0f); // sussyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
 
     // Create and bind VAO and VBO
     glGenVertexArrays(1, &m_vao);
@@ -859,6 +1125,7 @@ void CityGen::deGenerate() {
     }
     m_vertices.clear();
     debugs.clear();
+    debugs1.clear();
     debugs2.clear();
     m_sites.clear();
     cubes.clear();
@@ -870,18 +1137,12 @@ void CityGen::reGenerate() {
 }
 void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
     glUseProgram(m_program);
-    for (auto& c : cubes)
-    {
-        cout<<"\nSEX\n"<<endl;
-        c.draw(proj, view, m_timer);
-    }
 
     // Set uniform variables
     GLint projLoc = glGetUniformLocation(m_program, "projection");
     GLint viewLoc = glGetUniformLocation(m_program, "view");
     GLint worldLoc = glGetUniformLocation(m_program, "world");
     GLint timeLoc = glGetUniformLocation(m_program, "u_time");
-    // glUniform1f(glGetUniformLocation(m_program, "u_time"), m_timer);
 
     if (projLoc != -1) glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
     if (viewLoc != -1) glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -895,11 +1156,6 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     glBindVertexArray(m_vao);
     glDrawArrays(GL_LINES, 0, m_numVertices);
     glBindVertexArray(0);
-    
-    // for (auto& c : cubes)
-    // {
-    //     c.draw(proj, view, m_timer);
-    // }
     
     glUseProgram(0);
 }
