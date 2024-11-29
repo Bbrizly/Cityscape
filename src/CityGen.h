@@ -26,27 +26,33 @@ private:
     GLuint m_program;
     GLuint m_vao, m_vbo;
     vector<Vertex> m_vertices;
+    bool Debug = true; //false;
     int m_numVertices;
 
     // Voronoi parameters
-    const int numSites = 10;
+    const int numSites = 2;
     const double minX = -200.0;
     const double maxX = 200.0;
     const double minY = -100.0;
     const double maxY = 100.0;
     const double epsilon = 1e-9;
-
+    double distanceBetweenPoints(const Point& p1, const Point& p2);
+void addLineToVector(Point p1,Point vector);
+void addLineToVector1(Point p1,Point vector);
     vector<Point> m_sites;
     vector<vector<Point>> m_voronoiCells;
     vector<vector<Point>> m_chunks;
     vector<vector<Point>> m_blocks;
+    // vector<vector<vector<Point>>> m_strips;
+    vector<vector<Point>> m_strips;
     vector<vector<Point>> m_buildings;
     Point getDirectionVector(const Point& from, const Point& to);
     
+    Point oppositeVector(double x, double y);
     pair<pair<Point, Point>, vec2> getEdgeWithInwardDirection(
     vector<Point>& polygon,
     size_t edgeIndex);
-    
+    Line makePerpendicularLine(const Line& originalLine);
     Point getCentroid(vector<Point> polygon);
 
     Line moveLineInDirection(const Line& line, const Point& direction, double distance);
