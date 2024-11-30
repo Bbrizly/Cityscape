@@ -6,112 +6,92 @@
 #include <vector>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+
 using namespace std;
 using namespace glm;
 
-struct Point {double x, y;};
+// Basic geometric structures
+struct Point { double x, y; };
+struct Line { double a, b, c; }; // Line equation: ax + by + c = 0
+struct Edge { Point start, end; };
 
-struct Line {double a, b, c;}; // Line equation: ax + by + c = 0
-
-struct Edge {Point start, end;};
-
+// CityGen Class Definition
 class CityGen {
 private:
-
+    // Debugging vectors
     vector<vector<Point>> debugs;
     vector<vector<Point>> debugs1;
     vector<vector<Point>> debugs2;
-    GLuint otherShader;
 
+    // OpenGL related variables
+    GLuint otherShader;
     GLuint m_program;
     GLuint m_vao, m_vbo;
     vector<Vertex> m_vertices;
-    bool Debug = true; //false;
+    bool Debug = false;
     int m_numVertices;
 
-    // Voronoi parameters
-    const int numSites = 2;
+    // Voronoi diagram parameters
+    const int numSites = 12;
     const double minX = -200.0;
     const double maxX = 200.0;
     const double minY = -100.0;
     const double maxY = 100.0;
     const double epsilon = 1e-9;
+
+    // Geometric and utility functions
     double distanceBetweenPoints(const Point& p1, const Point& p2);
-void addLineToVector(Point p1,Point vector);
-void addLineToVector1(Point p1,Point vector);
-    vector<Point> m_sites;
-    vector<vector<Point>> m_voronoiCells;
-    vector<vector<Point>> m_chunks;
-    vector<vector<Point>> m_blocks;
-    // vector<vector<vector<Point>>> m_strips;
-    vector<vector<Point>> m_strips;
-    vector<vector<Point>> m_buildings;
-    Point getDirectionVector(const Point& from, const Point& to);
-    
-    Point oppositeVector(double x, double y);
-    pair<pair<Point, Point>, vec2> getEdgeWithInwardDirection(
-    vector<Point>& polygon,
-    size_t edgeIndex);
-    Line makePerpendicularLine(const Line& originalLine);
-    Point getCentroid(vector<Point> polygon);
-
-    Line moveLineInDirection(const Line& line, const Point& direction, double distance);
-
-    bool findSmallestEdgeAmount(vector<Point> polygon, float minEdgeLength);
-
-    bool isPolygonClockwise(const vector<Point>& polygon);
-    pair<Point,Point> findLargestEdge(vector<Point> polygon);
-    // Line findLargestEdge(vector<Point> polygon);
-    float findSmallestEdgeAmount(vector<Point> polygon);
+    Line CreateLineFromPoints(const Point& p1, const Point& p2);
     Point findMidpoint(const Point& p1, const Point& p2);
-    void CreateCube(Point x, float height);
-    Line moveToPoint(Line l, Point p);
-    Line moveLineToCenter(Line l, vector<Point> polygon);
-
-    void addDebug1(Point p);
-    void addLineDebug1(Point p1,Point p2);
-
-    void addDebug(Point p);
-    void addLineDebug(Point p1,Point p2);
+    Line perpendicularBisector(const Point& p1, const Point& p2);
+    bool lineSegmentLineIntersection(const Point& p1, const Point& p2, const Line& l, Point& intersection);
+    double evaluate(const Line& l, const Point& p);
+    Point getDirectionVector(const Point& from, const Point& to);
+    Line moveLineInDirection(const Line& line, const Point& direction, double distance);
     Point movePointInDirection(const Point& point, const Point& direction, double distance);
-
-    const float maximumChunkSize = 5000.0f;
-
-    float calculatePolygonArea(const vector<Point>& polygon);
-
-    vector<Line> generateSweepLines(const Point& origin, const Point& direction, double minSpacing, double maxSpacing, double maxDistance);
-
-    bool isConvex(const vector<Point>& polygon);
+    Line moveToPoint(Line l, Point p);
     Point normalizeVector(double x, double y);
     Point perpendicularVector(double x, double y);
-    vector<Point> offsetPolygonInward(const vector<Point>& polygon, double offsetDistance);
-
-    vector<Point> scalePolygon(const vector<Point>& polygon, float scaleFactor);
-
-    // Functions for Voronoi diagram
+    Point oppositeVector(double x, double y);
+    Line makePerpendicularLine(const Line& originalLine);
     vector<Point> findIntersectionsWithBoundary(const Line& line);
-
-    Line CreateLineFromPoints(const Point& p1, const Point& p2);
-
-    void CreateCubesAlongLine(const Point& start, const Point& end, int numBuildings);
-
-    vector<Point> generateSites(int numSites, unsigned int seed);
-    Line perpendicularBisector(const Point& p1, const Point& p2);
-    double evaluate(const Line& l, const Point& p);
-    bool lineSegmentLineIntersection(const Point& p1, const Point& p2, const Line& l, Point& intersection);
-    // vector<Point> clipPolygon(const vector<Point>& polygon, const Line& l, bool keepPositiveSide);
-    
+    pair<Point, Point> findLargestEdge(vector<Point> polygon);
     pair<vector<Point>, vector<Point>> clipPolygon(vector<Point> polygon, Line l);
-    vector<vector<Point>> splitToBlocks(vector<Point>& polygon, vector<Line>& sweepLines);
-    
+    Point getCentroid(vector<Point> polygon);
+    bool isConvex(const vector<Point>& polygon);
+    Line moveLineToCenter(Line l, vector<Point> polygon);
+    vector<Point> scalePolygon(const vector<Point>& polygon, float scaleFactor);
+    float calculatePolygonArea(const vector<Point>& polygon);
+    bool findSmallestEdgeAmount(vector<Point> polygon, float minEdgeLength);
+
+    // Voronoi and chunk processing
+    vector<Point> generateSites(int numSites, unsigned int seed);
     void computeVoronoiDiagram();
     void computeChunks();
     void sweepToBlocks();
     void buildVertexData();
-    void buildBuildings();
 
-    
+    // Debugging functions
+    void addDebug1(Point p);
+    void addLineDebug1(Point p1, Point p2);
+    void addDebug(Point p);
+    void addLineDebug(Point p1, Point p2);
+    void addLineToVector(Point p1, Point vector);
+    void addLineToVector1(Point p1, Point vector);
+
+    // Data structures for Voronoi and building generation
+    vector<Point> m_sites;
+    vector<vector<Point>> m_voronoiCells;
+    vector<vector<Point>> m_chunks;
+    vector<vector<Point>> m_blocks;
+    vector<vector<Point>> m_strips;
+    vector<vector<Point>> m_buildings;
+
+    // Constants
+    const float maximumChunkSize = 5000.0f;
+
 public:
+    // Public interface
     void generate(GLuint program);
     void deGenerate();
     void reGenerate();

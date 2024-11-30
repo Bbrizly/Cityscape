@@ -711,7 +711,6 @@ void CityGen::computeChunks() {
 
     for (size_t i = 0; i < m_chunks.size(); i++) {
         vector<Point> x = m_chunks[i];
-    
         m_chunks[i] = scalePolygon(x, 0.85f);
         // m_blocks[i] = scalePolygon(x, 0.85f);
     }
@@ -724,6 +723,12 @@ void CityGen::sweepToBlocks()
     
     //delete
     m_chunks = m_voronoiCells;
+
+    for (size_t i = 0; i < m_chunks.size(); i++) {
+        vector<Point> x = m_chunks[i];
+        m_chunks[i] = scalePolygon(x, 0.85f);
+        // m_blocks[i] = scalePolygon(x, 0.85f);
+    }
     
   // Cuts chunks into blocks
     for (size_t i = 0; i < m_chunks.size(); i++) {
@@ -748,6 +753,7 @@ void CityGen::sweepToBlocks()
         int moveAmount = 30.0f;
         int iterationAmount = 0;
         float minEdge = 2.0f;
+        float minEdge2 = 0.5f;
         bool fuck = false;
 
         double eval = evaluate(largestEdge, centerPoint);
@@ -791,10 +797,6 @@ void CityGen::sweepToBlocks()
         //m_strips
         #pragma endregion
         #pragma region prep
-        // for (size_t i = 0; i < m_strips.size(); i++)
-        // {
-        //     m_buildings.push_back(m_strips[i]);
-        // }
         
         // float distance = iterationAmount * moveAmount;
         float distance = edgeLength * .5f;
@@ -828,36 +830,32 @@ void CityGen::sweepToBlocks()
 
         cout << "\n\nDebug: START" << endl;
 
-        bool done = false;
         #pragma endregion
         #pragma region Part2
         int debugCount = 0;
 
-        while(true)
+        vector<vector<Point>> tempStrips;
+        
+        while(!m_strips.empty())
         {
             debugCount++;
-            if(done) {break;}
-            // if(debugCount >= 1) {break;}
             iterationAmount++;
-            cout << "\n\n\nTimes: " << iterationAmount << " for chunk " << i + 1 << "." << endl;
-    
-            // Move the cutting line perpendicularly by moveAmount
+            cout<<"\n\n\nSTRIP SIZE: "<<m_strips.size()<<"\n\n"<<endl;
+
             goToPoint = movePointInDirection(goToPoint, directionVector, moveAmount);
             addLineToVector(goToPoint,directionVector);
             largestEdge = moveToPoint(largestEdge, goToPoint);
 
             debugs1.push_back(findIntersectionsWithBoundary(largestEdge));
 
-            cout << "Debug: Moved cutting line to new point (" << goToPoint.x << ", " << goToPoint.y << ")." << endl;
-            cout << "Debug: Updated largestEdge equation: " << largestEdge.a << "x + " 
-                 << largestEdge.b << "y + " << largestEdge.c << " = 0" << endl;
-
             for (size_t j = 0; j < m_strips.size(); j++)
             {
-                cout << "Debug: Clipping strip " << j + 1 << " with " << m_strips[j].size() << " points." << endl;
+                cout<<"Loop: "<<j<<"\n"<<endl;
+
+                // if(m_strips[j].empty()) {continue;}
+
                 vector<Point> currPolygon = m_strips[j];
     
-                // Clip the current strip with the largestEdge
                 auto clipped = clipPolygon(currPolygon, largestEdge);
                 vector<Point> positive = clipped.first;
                 vector<Point> negative = clipped.second;
@@ -865,64 +863,56 @@ void CityGen::sweepToBlocks()
                 cout << " - Positive side: " << positive.size() <<
                 " , Negative side: " << negative.size() << endl;
     
-                // Check if both sides are empty
                 if((positive.empty() && negative.empty())) {
                     cout << "Both empty" << j + 1 << ". Skipping." << endl;
                     continue;
                 }
     
-                bool positiveMeetsCriteria = (findSmallestEdgeAmount(positive, minEdge) && positive.size() <= 4);
-                bool negativeMeetsCriteria = (findSmallestEdgeAmount(negative, minEdge) && negative.size() <= 4);
-                cout << "Debug: Positive side meets criteria: " << (positiveMeetsCriteria ? "True" : "False") 
-                     << ", Negative side meets criteria: " << (negativeMeetsCriteria ? "True" : "False") << endl;
-    
-                if((positiveMeetsCriteria) 
-                || (negativeMeetsCriteria))
+                bool positiveMeetsCriteria = (findSmallestEdgeAmount(positive, minEdge2) && positive.size() <= 4);
+                bool negativeMeetsCriteria = (findSmallestEdgeAmount(negative, minEdge2) && negative.size() <= 4);
+                cout << "Positive: " << (positiveMeetsCriteria ? "True" : "False") 
+                     << ", Negative: " << (negativeMeetsCriteria ? "True" : "False") << endl;
+                    
+                if((positiveMeetsCriteria) || (negativeMeetsCriteria))
                 {
-                    cout << "Debug: Termination condition met for strip " << j + 1 << "." << endl;
                     m_buildings.push_back(currPolygon);
-                    cout << "Debug: Added strip " << j + 1 << " as a building." << endl;
-                    done = true;
-                    continue;
+                    cout << "Criteria MET Added strip " << j + 1 << " as a building." << endl;
                 }
                 else if(keepPositiveSide)
                 {
                     if(positive.empty()) {
-                        cout << "Debug: Positive side is empty for strip " << j + 1 << ". Skipping." << endl;
-                        done = true;
-                        continue;
+                        cout << "Positive empty for strip " << j + 1 << ". Skipping." << endl;
+                    }else
+                    {
+                        currPolygon = positive;
+                        tempStrips.push_back(currPolygon);
                     }
-    
-                    currPolygon = positive;
 
-                    cout << "Debug: Updated current polygon to positive side for strip " << j + 1 << " with " 
-                         << currPolygon.size() << " points." << endl;
-    
                     if(!negative.empty()) {
                         m_buildings.push_back(negative);
-                        cout << "Debug: Added negative side as a building for strip " << j + 1 << "." << endl;
+                        cout << "negative side as a building for strip " << j + 1 << "." << endl;
                     }
                 }
                 else
                 {
                     if(negative.empty()) {
-                        cout << "Debug: Negative side is empty for strip " << j + 1 << ". Skipping." << endl;
-                        done = true;
-                        continue;
+                        cout << "Negative empty for strip " << j + 1 << ". Skipping." << endl;
                     }
-    
-                    currPolygon = negative;
+                    else
+                    {
+                        currPolygon = negative;
+                        tempStrips.push_back(currPolygon);
+                    }
 
-                    cout << "Debug: Updated current polygon to negative side for strip " << j + 1 << " with " 
-                         << currPolygon.size() << " points." << endl;
-    
-                    if(!positive.empty()) {
+                    if(!positive.empty()){
                         m_buildings.push_back(positive);
-                        cout << "Debug: Added positive side as a building for strip " << j + 1 << "." << endl;
+                        cout << "positive side as a building for strip " << j + 1 << "." << endl;
                     }
+
                 }
-                m_strips[j] = currPolygon;
             }
+            m_strips = tempStrips;
+            tempStrips.clear();
         }
         #pragma endregion
     }
@@ -931,20 +921,6 @@ void CityGen::sweepToBlocks()
 
 #pragma region Render
 void CityGen::buildVertexData() {
-    /*
-    for (size_t i = 0; i < m_blocks.size(); ++i)
-    {
-        const vector<Point>& cell = m_blocks[i];
-
-        for (size_t j = 0; j < cell.size(); ++j) {
-
-            Point p1 = cell[j];
-            Point p2 = cell[(j + 1) % cell.size()];
-
-            CreateCubesAlongLine(p1,p2,2.0f);
-        }
-    }
-    */
     // /*
     m_vertices.clear();
 
@@ -967,9 +943,30 @@ void CityGen::buildVertexData() {
     200, 200, 200  // Light Gray (stands out against black)
     };  
 
-    for (size_t i = 1; i < m_buildings.size(); ++i) {
+    for (size_t i = 0; i < m_buildings.size(); ++i) {
 
         const vector<Point>& cell = m_buildings[i];
+        
+        GLubyte r = colors[(i * 3) % colors.size()];
+        GLubyte g = colors[(i * 3 + 1) % colors.size()];
+        GLubyte b = colors[(i * 3 + 2) % colors.size()];
+        GLubyte a = 255;
+        
+        for (size_t j = 0; j < cell.size(); ++j) {
+            Point p1 = cell[j];
+            Point p2 = cell[(j + 1) % cell.size()];
+
+            Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a };
+            Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a };
+
+            m_vertices.push_back(v1);
+            m_vertices.push_back(v2);
+        }   
+    }
+    
+    for (size_t i = 0; i < m_chunks.size(); ++i) {
+
+        const vector<Point>& cell = m_chunks[i];
         
         GLubyte r = colors[(i * 3) % colors.size()];
         GLubyte g = colors[(i * 3 + 1) % colors.size()];
