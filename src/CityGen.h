@@ -32,7 +32,14 @@ private:
     int m_numVertices;
 
     // Voronoi diagram parameters
-    const int numSites = 12;
+    const int numSites = 3;
+    float moveAmount = 25.0f;
+    float maxMoveAmount = 30.0f;
+    float minMoveAmount = 20.0f;
+    float minPolygonArea = (moveAmount * moveAmount )/4;//50.0f;
+    float minEdge = 2.0f;
+    float minEdge2 = 0.5f;
+
     const double minX = -200.0;
     const double maxX = 200.0;
     const double minY = -100.0;
@@ -46,6 +53,7 @@ private:
     Line perpendicularBisector(const Point& p1, const Point& p2);
     bool lineSegmentLineIntersection(const Point& p1, const Point& p2, const Line& l, Point& intersection);
     double evaluate(const Line& l, const Point& p);
+    Point getPerpendicularDirVector(pair<Point,Point> edge, const Point& centroid);
     Point getDirectionVector(const Point& from, const Point& to);
     Line moveLineInDirection(const Line& line, const Point& direction, double distance);
     Point movePointInDirection(const Point& point, const Point& direction, double distance);

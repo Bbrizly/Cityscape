@@ -191,15 +191,15 @@ void Cube::draw(const mat4& proj, const mat4& view, float m_timer) {
     glBindVertexArray(m_vao);
 
     mat4 model = getTransformationMatrix();
-    // GLint program;
-    // glGetIntegerv(GL_CURRENT_PROGRAM,&program);
+    GLint program;
+    glGetIntegerv(GL_CURRENT_PROGRAM,&program);
 
-    // glUniformMatrix4fv(glGetUniformLocation(m_program, "projection"), 1, GL_FALSE, value_ptr(proj));
-    // glUniformMatrix4fv(glGetUniformLocation(m_program, "view"), 1, GL_FALSE, value_ptr(view));
+    glUniformMatrix4fv(glGetUniformLocation(m_program, "projection"), 1, GL_FALSE, value_ptr(proj));
+    glUniformMatrix4fv(glGetUniformLocation(m_program, "view"), 1, GL_FALSE, value_ptr(view));
     glUniformMatrix4fv(glGetUniformLocation(m_program, "world"), 1, GL_FALSE, value_ptr(model));
-    // glUniform1f(glGetUniformLocation(m_program, "u_time"), m_timer);
+    glUniform1f(glGetUniformLocation(m_program, "u_time"), m_timer);
 
-    // glDrawArrays(GL_TRIANGLES, 0, m_vertices.size());
+    glDrawArrays(GL_TRIANGLES, 0, m_vertices.size());
 
     glBindVertexArray(0);
     glUseProgram(0);

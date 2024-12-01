@@ -152,6 +152,25 @@ Point CityGen::getDirectionVector(const Point& from, const Point& to) {
     // Normalize the vector
     return {dx / magnitude, dy / magnitude};
 }
+Point CityGen::getPerpendicularDirVector(pair<Point,Point> edge, const Point& centroid) {
+    
+    Point edgeMidpoint = findMidpoint(edge.first,edge.second);
+    Point edgeDirectionVector = getDirectionVector(edgeMidpoint,centroid);
+
+    double dx = edge.second.x - edge.first.x;
+    double dy = edge.second.y - edge.first.y;
+    Point perp1 = perpendicularVector(dx, dy);
+    Point perp2 = oppositeVector(perp1.x, perp1.y);
+
+    // Step 4: Check which perpendicular vector points inward
+    if ((perp1.x * edgeDirectionVector.x + perp1.y * edgeDirectionVector.y) > 0) {
+        // Perpendicular vector is inward
+        return normalizeVector(perp1.x, perp1.y);
+    } else {
+        // Opposite perpendicular vector is inward
+        return normalizeVector(perp2.x, perp2.y);
+    }
+}
 //     double magnitude = sqrt(line.a * line.a + line.b * line.b);
 //     double newC = line.c + distance * magnitude; // Shift the line by the given distance
 //     return {line.a, line.b, newC};
@@ -721,7 +740,6 @@ void CityGen::sweepToBlocks()
     m_blocks.resize(m_chunks.size());
     m_buildings.clear();
     
-    //delete
     m_chunks = m_voronoiCells;
 
     for (size_t i = 0; i < m_chunks.size(); i++) {
@@ -731,9 +749,13 @@ void CityGen::sweepToBlocks()
     }
     
   // Cuts chunks into blocks
-    for (size_t i = 0; i < m_chunks.size(); i++) {
+    for (size_t i = 0; i < m_chunks.size(); i++) { //m_chunks.size()
         #pragma region prep
         vector<Point> x = m_chunks[i];
+
+        random_device rd;
+        mt19937 gen(rd());
+        uniform_real_distribution<> dis(minMoveAmount, maxMoveAmount); // Range for moveAmount
 
         pair<Point,Point> largestPointPair = findLargestEdge(x);
         
@@ -745,16 +767,13 @@ void CityGen::sweepToBlocks()
         
         Point centerPoint = getCentroid(x);
         
-        Point directionVector = getDirectionVector(midpoint,centerPoint);
+        // Point directionVector = getDirectionVector(midpoint,centerPoint);
+        Point directionVector = getPerpendicularDirVector(largestPointPair,centerPoint);
 
         Point goToPoint = midpoint;
         largestEdge = moveToPoint(largestEdge,goToPoint);
 
-        int moveAmount = 30.0f;
         int iterationAmount = 0;
-        float minEdge = 2.0f;
-        float minEdge2 = 0.5f;
-        bool fuck = false;
 
         double eval = evaluate(largestEdge, centerPoint);
         bool keepPositiveSide = eval > 0;
@@ -765,6 +784,8 @@ void CityGen::sweepToBlocks()
         while(true)
         {
             iterationAmount++;
+
+            moveAmount = dis(gen);
 
             goToPoint = movePointInDirection(goToPoint, directionVector, moveAmount);
             largestEdge = moveToPoint(largestEdge,goToPoint);
@@ -798,9 +819,7 @@ void CityGen::sweepToBlocks()
         #pragma endregion
         #pragma region prep
         
-        // float distance = iterationAmount * moveAmount;
-        float distance = edgeLength * .5f;
-            //  << ", Total distance moved: " << distance << endl;
+        float distance = edgeLength * .7f;
 
         iterationAmount = 0;
 
@@ -808,19 +827,14 @@ void CityGen::sweepToBlocks()
         directionVector = perpendicularVector(directionVector.x, directionVector.y);
         Point oppVector = oppositeVector(directionVector.x, directionVector.y);
 
-        // Move the cutting line to the center point with half the total distance
         goToPoint = centerPoint;
-        // addDebug(goToPoint);
         addLineToVector(goToPoint,oppVector);
         goToPoint = movePointInDirection(goToPoint, oppVector, distance);
         addLineToVector(goToPoint,directionVector);
         
         cout<<"\n\nDistance: "<<distance<<endl;
 
-        cout << "Debug: Moved cutting line to center point with half distance: (" << goToPoint.x 
-             << ", " << goToPoint.y << ")." << endl;
-    
-        largestEdge = moveToPoint(largestEdge, centerPoint);
+        // largestEdge = moveToPoint(largestEdge, centerPoint);
         largestEdge = makePerpendicularLine(largestEdge);
         largestEdge = moveToPoint(largestEdge, goToPoint);
         debugs1.push_back(findIntersectionsWithBoundary(largestEdge));
@@ -832,15 +846,15 @@ void CityGen::sweepToBlocks()
 
         #pragma endregion
         #pragma region Part2
-        int debugCount = 0;
 
         vector<vector<Point>> tempStrips;
         
         while(!m_strips.empty())
         {
-            debugCount++;
             iterationAmount++;
             cout<<"\n\n\nSTRIP SIZE: "<<m_strips.size()<<"\n\n"<<endl;
+
+            moveAmount = dis(gen);
 
             goToPoint = movePointInDirection(goToPoint, directionVector, moveAmount);
             addLineToVector(goToPoint,directionVector);
@@ -851,8 +865,6 @@ void CityGen::sweepToBlocks()
             for (size_t j = 0; j < m_strips.size(); j++)
             {
                 cout<<"Loop: "<<j<<"\n"<<endl;
-
-                // if(m_strips[j].empty()) {continue;}
 
                 vector<Point> currPolygon = m_strips[j];
     
@@ -870,13 +882,32 @@ void CityGen::sweepToBlocks()
     
                 bool positiveMeetsCriteria = (findSmallestEdgeAmount(positive, minEdge2) && positive.size() <= 4);
                 bool negativeMeetsCriteria = (findSmallestEdgeAmount(negative, minEdge2) && negative.size() <= 4);
+                // bool positiveMeetsCriteria = (calculatePolygonArea(positive) <= minPolygonArea ||
+                // (findSmallestEdgeAmount(negative, minEdge2) && positive.size() <= 4));
+
+                // bool negativeMeetsCriteria = (calculatePolygonArea(negative) <= minPolygonArea ||
+                // (findSmallestEdgeAmount(negative, minEdge2) && negative.size() <= 4));
+
                 cout << "Positive: " << (positiveMeetsCriteria ? "True" : "False") 
                      << ", Negative: " << (negativeMeetsCriteria ? "True" : "False") << endl;
                     
                 if((positiveMeetsCriteria) || (negativeMeetsCriteria))
                 {
-                    m_buildings.push_back(currPolygon);
-                    cout << "Criteria MET Added strip " << j + 1 << " as a building." << endl;
+                    if(keepPositiveSide && !positive.empty())
+                    {
+                        currPolygon = positive;
+                        tempStrips.push_back(currPolygon);
+                    }
+                    else if(!keepPositiveSide && !negative.empty())
+                    {
+                        currPolygon = negative;
+                        tempStrips.push_back(currPolygon);
+                    }
+                    else
+                    {
+                        m_buildings.push_back(currPolygon);
+                        cout << "Criteria MET Added strip " << j + 1 << " as a building." << endl;
+                    }
                 }
                 else if(keepPositiveSide)
                 {
@@ -888,9 +919,13 @@ void CityGen::sweepToBlocks()
                         tempStrips.push_back(currPolygon);
                     }
 
-                    if(!negative.empty()) {
-                        m_buildings.push_back(negative);
-                        cout << "negative side as a building for strip " << j + 1 << "." << endl;
+                    if(!negative.empty()) { //if building clipped, add to buildings
+                        if(calculatePolygonArea(negative) > minPolygonArea)
+                        {
+                            m_buildings.push_back(negative);
+                            cout << "negative side as a building for strip " << j + 1 << "." << endl;
+
+                        }                        
                     }
                 }
                 else
@@ -905,8 +940,11 @@ void CityGen::sweepToBlocks()
                     }
 
                     if(!positive.empty()){
-                        m_buildings.push_back(positive);
-                        cout << "positive side as a building for strip " << j + 1 << "." << endl;
+                        if(calculatePolygonArea(positive) > minPolygonArea)
+                        {
+                            m_buildings.push_back(positive);
+                            cout << "positive side as a building for strip " << j + 1 << "." << endl;
+                        }
                     }
 
                 }
@@ -963,10 +1001,9 @@ void CityGen::buildVertexData() {
             m_vertices.push_back(v2);
         }   
     }
-    
-    for (size_t i = 0; i < m_chunks.size(); ++i) {
+    for (size_t i = 0; i < m_voronoiCells.size(); ++i) {
 
-        const vector<Point>& cell = m_chunks[i];
+        const vector<Point>& cell = m_voronoiCells[i];
         
         GLubyte r = colors[(i * 3) % colors.size()];
         GLubyte g = colors[(i * 3 + 1) % colors.size()];
@@ -1043,12 +1080,17 @@ void CityGen::buildVertexData() {
     // */
     #pragma endregion
 }
+
 void CityGen::generate(GLuint program) {
     m_program = program;
     
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
     m_sites = generateSites(numSites, seed);
-
+    
+    Cube c(vec3(0),vec3(10),vec3(0),vec4(255));
+    c.init(program);
+    cubes.push_back(c);
+    
     // m_sites = {
     // {-50,-50},
     // {50,50}};
@@ -1083,6 +1125,9 @@ void CityGen::reGenerate() {
     generate(m_program);
 }
 void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
+
+    cubes[0].draw(proj,view,m_timer);
+    // return;
     glUseProgram(m_program);
 
     // Set uniform variables
@@ -1096,6 +1141,8 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     if (worldLoc != -1) glUniformMatrix4fv(worldLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
     if (timeLoc != -1) glUniformMatrix4fv(timeLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(m_timer)));
 
+    // cubes[0].draw(proj,view,m_timer);
+    
     glLineWidth(3.0f); // Set the line thickness to 3.0 (default is 1.0)
     glEnable(GL_LINE_SMOOTH);
     // glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
