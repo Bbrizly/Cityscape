@@ -23,10 +23,18 @@ void Program::init()
 {
     if(!cubeShader || !otherShader)
     {
+        // glEnable(GL_DEPTH_TEST);
+        // // glEnable(GL_CULL_FACE);
+        // glDisable(GL_CULL_FACE);
+        // glDepthFunc(GL_LESS);
+
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
         glEnable(GL_DEPTH_TEST);
-        // glEnable(GL_CULL_FACE);
-        glDisable(GL_CULL_FACE);
         glDepthFunc(GL_LESS);
+        
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
         // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
         // m_program = wolf::LoadShaders("data/planeAnimation.vsh", "data/planeAnimation.fsh");

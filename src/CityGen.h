@@ -32,7 +32,7 @@ private:
     int m_numVertices;
 
     // Voronoi diagram parameters
-    const int numSites = 3;
+    const int numSites = 33;
     float moveAmount = 25.0f;
     float maxMoveAmount = 30.0f;
     float minMoveAmount = 20.0f;
@@ -40,10 +40,10 @@ private:
     float minEdge = 2.0f;
     float minEdge2 = 0.5f;
 
-    const double minX = -200.0;
-    const double maxX = 200.0;
-    const double minY = -100.0;
-    const double maxY = 100.0;
+    const double minX = -500.0;
+    const double maxX = 500.0;
+    const double minY = -400.0;
+    const double maxY = 400.0;
     const double epsilon = 1e-9;
 
     // Geometric and utility functions

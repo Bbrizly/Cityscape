@@ -981,8 +981,11 @@ void CityGen::buildVertexData() {
     200, 200, 200  // Light Gray (stands out against black)
     };  
 
-    for (size_t i = 0; i < m_buildings.size(); ++i) {
-
+    float wallHeight = 80.0f;
+    
+    vector<Vertex> topVertices;
+    for (size_t i = 0; i < m_buildings.size(); ++i) { //m_buildings.size()
+        topVertices.clear();
         const vector<Point>& cell = m_buildings[i];
         
         GLubyte r = colors[(i * 3) % colors.size()];
@@ -997,31 +1000,56 @@ void CityGen::buildVertexData() {
             Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a };
             Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a };
 
-            m_vertices.push_back(v1);
-            m_vertices.push_back(v2);
-        }   
-    }
-    for (size_t i = 0; i < m_voronoiCells.size(); ++i) {
-
-        const vector<Point>& cell = m_voronoiCells[i];
-        
-        GLubyte r = colors[(i * 3) % colors.size()];
-        GLubyte g = colors[(i * 3 + 1) % colors.size()];
-        GLubyte b = colors[(i * 3 + 2) % colors.size()];
-        GLubyte a = 255;
-        
-        for (size_t j = 0; j < cell.size(); ++j) {
-            Point p1 = cell[j];
-            Point p2 = cell[(j + 1) % cell.size()];
-
-            Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a };
-            Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a };
+            Vertex top1 = { static_cast<GLfloat>(p1.x), wallHeight, static_cast<GLfloat>(p1.y), r, g, b, a };
+            Vertex top2 = { static_cast<GLfloat>(p2.x), wallHeight, static_cast<GLfloat>(p2.y), r, g, b, a };
 
             m_vertices.push_back(v1);
+            m_vertices.push_back(top1);
             m_vertices.push_back(v2);
-        }   
+            // m_vertices.push_back(top1);
+
+            m_vertices.push_back(top1);
+            m_vertices.push_back(top2);
+            m_vertices.push_back(v2);
+            // m_vertices.push_back(top2);
+            
+            // top1.y += 0.1f;
+            topVertices.push_back(top1);
+        }
+
+        cout << "Building " << i << " Roof Vertices:" << endl;
+        for (const auto& v : topVertices) {
+            cout << "Vertex: (" << v.x << ", " << v.y << ", " << v.z << ")" << endl;
+        }
+
+        for (size_t j = 1; j < topVertices.size() - 1; ++j) {
+            Vertex v1 = topVertices[0];
+            Vertex v2 = topVertices[j];
+            Vertex v3 = topVertices[j + 1];
+
+            // Add roof triangles
+            m_vertices.push_back(v1);
+            m_vertices.push_back(v3);
+            m_vertices.push_back(v2);
+            // m_vertices.push_back(v3);
+        }
     }
-    
+    // for (size_t i = 0; i < m_voronoiCells.size(); ++i) {
+    //     const vector<Point>& cell = m_voronoiCells[i];     
+    //     GLubyte r = colors[(i * 3) % colors.size()];
+    //     GLubyte g = colors[(i * 3 + 1) % colors.size()];
+    //     GLubyte b = colors[(i * 3 + 2) % colors.size()];
+    //     GLubyte a = 255;
+    //     for (size_t j = 0; j < cell.size(); ++j) {
+    //         Point p1 = cell[j];
+    //         Point p2 = cell[(j + 1) % cell.size()];
+    //         Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a };
+    //         Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a };
+    //         m_vertices.push_back(v1);
+    //         m_vertices.push_back(v2);
+    //     }   
+    // }
+
     if(Debug)
     {
         for (size_t j = 0; j < debugs.size(); ++j)
@@ -1080,7 +1108,6 @@ void CityGen::buildVertexData() {
     // */
     #pragma endregion
 }
-
 void CityGen::generate(GLuint program) {
     m_program = program;
     
@@ -1126,7 +1153,7 @@ void CityGen::reGenerate() {
 }
 void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
 
-    cubes[0].draw(proj,view,m_timer);
+    // cubes[0].draw(proj,view,m_timer);
     // return;
     glUseProgram(m_program);
 
@@ -1148,7 +1175,8 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     // glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     // Bind VAO and draw lines
     glBindVertexArray(m_vao);
-    glDrawArrays(GL_LINES, 0, m_numVertices);
+    // glDrawArrays(GL_LINES, 0, m_numVertices);
+    glDrawArrays(GL_TRIANGLES, 0, m_numVertices);
     glBindVertexArray(0);
     
     glUseProgram(0);
