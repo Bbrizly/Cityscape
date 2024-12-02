@@ -624,6 +624,149 @@ vector<Point> CityGen::findIntersectionsWithBoundary(const Line& line) {
     return intersections;
 }
 
+void CityGen::drawCrosswalk(Point base, Point direction, float lineLength, float spacing, float lineHeight) {
+    GLubyte r = 255, g = 255, b = 255, a = 255;
+    Point perpendicular = perpendicularVector(direction.x, direction.y);
+
+    for (float offset = -(spacing * 5); offset <= spacing * 5; offset += spacing) {
+        Point lineStart = movePointInDirection(base, perpendicular, offset);
+        Point lineEnd = movePointInDirection(lineStart, direction, lineLength);
+
+        Vertex v1 = { static_cast<GLfloat>(lineStart.x), lineHeight, static_cast<GLfloat>(lineStart.y), r, g, b, a };
+        Vertex v2 = { static_cast<GLfloat>(lineEnd.x), lineHeight, static_cast<GLfloat>(lineEnd.y), r, g, b, a };
+
+        m_lines.push_back(v1);
+        m_lines.push_back(v2);
+    }
+}
+
+void CityGen::addRoadDecals(Point p1, Point p2) {
+    float lineHeight = 0.01f;
+    float lineLength = 5.0f;
+    float gapLength = 8.0f;
+    float intersection = 20.0f;
+    float crosswalkWidth = 10.0f; // Width of crosswalk
+    float crosswalkSpacing = 1.5f; // Spacing between lines in the crosswalk
+    float crosswalkLineLength = 5.0f; // Length of each line in the crosswalk
+
+    float totalLength = distanceBetweenPoints(p1, p2);
+    if ((totalLength * 0.65) <= (intersection * 2)) {
+        return;
+    }
+
+    Point p1Dir = getDirectionVector(p1, p2);
+    Point p2Dir = getDirectionVector(p2, p1);
+
+    Point startCrosswalk = movePointInDirection(p1, p1Dir, -crosswalkWidth);
+    Point endCrosswalk = movePointInDirection(p2, p2Dir, -crosswalkWidth);
+
+    p1 = movePointInDirection(p1, p1Dir, intersection);
+    p2 = movePointInDirection(p2, p2Dir, intersection);
+
+    // Add crosswalk at the start
+    drawCrosswalk(p1, p1Dir, crosswalkLineLength, crosswalkSpacing, lineHeight);
+
+    // Add crosswalk at the end
+    drawCrosswalk(p2, p2Dir, crosswalkLineLength, crosswalkSpacing, lineHeight);
+
+    totalLength = distanceBetweenPoints(p1, p2);
+
+    float segmentLength = lineLength + gapLength;
+    int numSegments = static_cast<int>(totalLength / segmentLength);
+
+    GLubyte r = 255, g = 255, b = 255, a = 255;
+
+    Point direction = {
+        (p2.x - p1.x) / totalLength,
+        (p2.y - p1.y) / totalLength
+    };
+
+    for (int i = 0; i <= numSegments; ++i) {
+        float startDist = i * segmentLength;
+        float endDist = startDist + lineLength;
+
+        if (startDist >= totalLength) break;
+
+        // Clamp end distance to total length
+        if (endDist > totalLength) endDist = totalLength;
+
+        // Calculate start and end points of the solid line segment
+        Point interpStart = {
+            p1.x + startDist * direction.x,
+            p1.y + startDist * direction.y
+        };
+
+        Point interpEnd = {
+            p1.x + endDist * direction.x,
+            p1.y + endDist * direction.y
+        };
+
+        // Add the solid segment as a pair of vertices
+        Vertex v1 = { static_cast<GLfloat>(interpStart.x), lineHeight, static_cast<GLfloat>(interpStart.y), r, g, b, a };
+        Vertex v2 = { static_cast<GLfloat>(interpEnd.x), lineHeight, static_cast<GLfloat>(interpEnd.y), r, g, b, a };
+
+        m_lines.push_back(v1);
+        m_lines.push_back(v2);
+    }
+}
+
+/*void CityGen::addRoadDecals(Point p1, Point p2) {
+    float lineHeight = 0.01f;
+    float lineLength = 5.0f;
+    float gapLength = 8.0f;
+    float intersection = 20.0f;
+
+    
+    float totalLength = distanceBetweenPoints(p1, p2);
+    if(totalLength <= intersection * 2) {return;}
+
+    Point p1Dir = getDirectionVector(p1,p2);
+    Point p2Dir = getDirectionVector(p2,p1);
+
+    p1 = movePointInDirection(p1,p1Dir,intersection);
+    p2 = movePointInDirection(p2,p2Dir,intersection);
+
+    totalLength = distanceBetweenPoints(p1, p2);
+
+    float segmentLength = lineLength + gapLength;
+    int numSegments = static_cast<int>(totalLength / segmentLength);
+
+    GLubyte r = 255, g = 255, b = 255, a = 255;
+
+    Point direction = {
+        (p2.x - p1.x) / totalLength,
+        (p2.y - p1.y) / totalLength
+    };
+
+    for (int i = 0; i <= numSegments; ++i) {
+        float startDist = i * segmentLength;
+        float endDist = startDist + lineLength;
+
+        if (startDist >= totalLength) break;
+
+        // Clamp end distance to total length
+        if (endDist > totalLength) endDist = totalLength;
+
+        // Calculate start and end points of the solid line segment
+        Point interpStart = {
+            p1.x + startDist * direction.x,
+            p1.y + startDist * direction.y
+        };
+
+        Point interpEnd = {
+            p1.x + endDist * direction.x,
+            p1.y + endDist * direction.y
+        };
+
+        // Add the solid segment as a pair of vertices
+        Vertex v1 = { static_cast<GLfloat>(interpStart.x), lineHeight, static_cast<GLfloat>(interpStart.y), r, g, b, a };
+        Vertex v2 = { static_cast<GLfloat>(interpEnd.x), lineHeight, static_cast<GLfloat>(interpEnd.y), r, g, b, a };
+
+        m_lines.push_back(v1);
+        m_lines.push_back(v2);
+    }
+}
+*/
 #pragma endregion
 
 #pragma region Voronoi gen
@@ -961,6 +1104,7 @@ void CityGen::sweepToBlocks()
 void CityGen::buildVertexData() {
     // /*
     m_vertices.clear();
+    m_lines.clear();
 
     for (size_t i = 0; i < m_buildings.size(); i++) {
         vector<Point> x = m_buildings[i];
@@ -981,7 +1125,7 @@ void CityGen::buildVertexData() {
     200, 200, 200  // Light Gray (stands out against black)
     };  
 
-    float wallHeight = 80.0f;
+    float wallHeight = 8.0f;
     
     vector<Vertex> topVertices;
     for (size_t i = 0; i < m_buildings.size(); ++i) { //m_buildings.size()
@@ -1034,21 +1178,44 @@ void CityGen::buildVertexData() {
             // m_vertices.push_back(v3);
         }
     }
-    // for (size_t i = 0; i < m_voronoiCells.size(); ++i) {
-    //     const vector<Point>& cell = m_voronoiCells[i];     
-    //     GLubyte r = colors[(i * 3) % colors.size()];
-    //     GLubyte g = colors[(i * 3 + 1) % colors.size()];
-    //     GLubyte b = colors[(i * 3 + 2) % colors.size()];
-    //     GLubyte a = 255;
-    //     for (size_t j = 0; j < cell.size(); ++j) {
-    //         Point p1 = cell[j];
-    //         Point p2 = cell[(j + 1) % cell.size()];
-    //         Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a };
-    //         Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a };
-    //         m_vertices.push_back(v1);
-    //         m_vertices.push_back(v2);
-    //     }   
-    // }
+    
+    // const int numSegments = 10; // Number of segments to create along the line
+    // const float gapRatio = 0.5f; // Ratio of gap to solid part of the line
+
+    for (size_t i = 0; i < m_voronoiCells.size(); ++i) 
+    {
+        const vector<Point>& cell = m_voronoiCells[i];     
+        GLubyte r = 255;
+        GLubyte g = 255;
+        GLubyte b = 255;
+        GLubyte a = 255;
+        for (size_t j = 0; j < cell.size(); ++j) {
+            Point p1 = cell[j];
+            Point p2 = cell[(j + 1) % cell.size()];
+            
+            addRoadDecals(p1,p2);
+        }
+    }
+
+
+    /*
+    for (size_t i = 0; i < m_voronoiCells.size(); ++i) {
+        const vector<Point>& cell = m_voronoiCells[i];     
+        GLubyte r = colors[(i * 3) % colors.size()];
+        GLubyte g = colors[(i * 3 + 1) % colors.size()];
+        GLubyte b = colors[(i * 3 + 2) % colors.size()];
+        GLubyte a = 255;
+        for (size_t j = 0; j < cell.size(); ++j) {
+            Point p1 = cell[j];
+            Point p2 = cell[(j + 1) % cell.size()];
+            
+            Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a };
+            Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a };
+            
+            m_lines.push_back(v1);
+            m_lines.push_back(v2);
+        }   
+    }*/
 
     if(Debug)
     {
@@ -1104,6 +1271,23 @@ void CityGen::buildVertexData() {
     glEnableVertexAttribArray(1);
 
     // Unbind VAO
+    glBindVertexArray(0);
+
+    m_numLines = static_cast<int>(m_lines.size());
+
+    glGenVertexArrays(1, &m_vaoLines);
+    glBindVertexArray(m_vaoLines);
+
+    glGenBuffers(1, &m_vboLines);
+    glBindBuffer(GL_ARRAY_BUFFER, m_vboLines);
+    glBufferData(GL_ARRAY_BUFFER, m_lines.size() * sizeof(Vertex), m_lines.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+
     glBindVertexArray(0);
     // */
     #pragma endregion
@@ -1170,14 +1354,29 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
 
     // cubes[0].draw(proj,view,m_timer);
     
-    glLineWidth(3.0f); // Set the line thickness to 3.0 (default is 1.0)
-    glEnable(GL_LINE_SMOOTH);
-    // glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    // Bind VAO and draw lines
     glBindVertexArray(m_vao);
-    // glDrawArrays(GL_LINES, 0, m_numVertices);
     glDrawArrays(GL_TRIANGLES, 0, m_numVertices);
     glBindVertexArray(0);
+
+    // Render m_lines (dotted lines)
+    glLineWidth(5.0f);
+    glEnable(GL_LINE_SMOOTH);
+    glBindVertexArray(m_vaoLines);
+    glDrawArrays(GL_LINES, 0, m_numLines);
+    glBindVertexArray(0);
+    
+    //--
+    
+    // glLineWidth(3.0f); // Set the line thickness to 3.0 (default is 1.0)
+    // glEnable(GL_LINE_SMOOTH);
+    // // glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+    // // Bind VAO and draw lines
+    // glBindVertexArray(m_vao);
+    // // glDrawArrays(GL_LINES, 0, m_numVertices);
+    // // glDrawArrays(GL_LINE_SMOOTH, 0, m_lines);
+    // glDrawArrays(GL_TRIANGLES, 0, m_numVertices);
+    // glDrawArrays(GL_LINE_SMOOTH, 0, m_lines);
+    // glBindVertexArray(0);
     
     glUseProgram(0);
 }

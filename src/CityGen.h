@@ -27,9 +27,12 @@ private:
     GLuint otherShader;
     GLuint m_program;
     GLuint m_vao, m_vbo;
+    GLuint m_vaoLines, m_vboLines;
     vector<Vertex> m_vertices;
+    vector<Vertex> m_lines;
     bool Debug = false;
     int m_numVertices;
+    int m_numLines;
 
     // Voronoi diagram parameters
     const int numSites = 33;
@@ -47,6 +50,9 @@ private:
     const double epsilon = 1e-9;
 
     // Geometric and utility functions
+    void drawCrosswalk(Point base, Point direction, float lineLength, float spacing, float lineHeight);
+    vector<pair<Point, Point>> findSharedEdges(const vector<vector<Point>>& polygons);
+    void addRoadDecals(Point p1, Point p2);
     double distanceBetweenPoints(const Point& p1, const Point& p2);
     Line CreateLineFromPoints(const Point& p1, const Point& p2);
     Point findMidpoint(const Point& p1, const Point& p2);

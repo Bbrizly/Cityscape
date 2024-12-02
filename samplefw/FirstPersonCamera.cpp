@@ -40,13 +40,15 @@ void FirstPersonCamera::update(float dt)
     if (m_pApp->isKeyDown(GLFW_KEY_LEFT_CONTROL)) {
         m_position -= m_up * adjustedSpeed * dt;
     }
-
-    // Handle mouse movement for looking around
-    glm::vec2 currentMousePos = m_pApp->getMousePos();
-    glm::vec2 mouseMovement = currentMousePos - m_lastMousePos;
-    m_lastMousePos = currentMousePos;
-
-    _updateOrientation(mouseMovement);
+    
+    if (m_pApp->isRMBDown()) {
+        glm::vec2 currentMousePos = m_pApp->getMousePos();
+        glm::vec2 mouseMovement = currentMousePos - m_lastMousePos;
+        _updateOrientation(mouseMovement);
+        m_lastMousePos = currentMousePos; // Update the last mouse position only if RMB is held
+    } else {
+        m_lastMousePos = m_pApp->getMousePos(); // Track mouse position for smooth transition
+    }
 }
 
 void FirstPersonCamera::_updateOrientation(const glm::vec2& mouseMovement)
