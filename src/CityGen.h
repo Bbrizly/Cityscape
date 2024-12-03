@@ -96,6 +96,7 @@ private:
     void addLineToVector1(Point p1, Point vector);
 
     // Data structures for Voronoi and building generation
+    void pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices);
     vector<Point> m_sites;
     vector<vector<Point>> m_voronoiCells;
     vector<vector<Point>> m_chunks;

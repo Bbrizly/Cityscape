@@ -633,8 +633,10 @@ void CityGen::drawCrosswalk(Point base, Point direction, float lineLength, float
         Point lineStart = movePointInDirection(base, perpendicular, offset);
         Point lineEnd = movePointInDirection(lineStart, direction, lineLength);
 
-        Vertex v1 = { static_cast<GLfloat>(lineStart.x), lineHeight, static_cast<GLfloat>(lineStart.y), r, g, b, a };
-        Vertex v2 = { static_cast<GLfloat>(lineEnd.x), lineHeight, static_cast<GLfloat>(lineEnd.y), r, g, b, a };
+        Vertex v1 = { static_cast<GLfloat>(lineStart.x), lineHeight, static_cast<GLfloat>(lineStart.y), r, g, b, a,
+        0.0f,0.0f };
+        Vertex v2 = { static_cast<GLfloat>(lineEnd.x), lineHeight, static_cast<GLfloat>(lineEnd.y), r, g, b, a,
+        1.0f,1.0f };
 
         m_lines.push_back(v1);
         m_lines.push_back(v2);
@@ -703,8 +705,10 @@ void CityGen::addRoadDecals(Point p1, Point p2) {
         };
 
         // Add the solid segment as a pair of vertices
-        Vertex v1 = { static_cast<GLfloat>(interpStart.x), lineHeight, static_cast<GLfloat>(interpStart.y), r, g, b, a };
-        Vertex v2 = { static_cast<GLfloat>(interpEnd.x), lineHeight, static_cast<GLfloat>(interpEnd.y), r, g, b, a };
+        Vertex v1 = { static_cast<GLfloat>(interpStart.x), lineHeight, static_cast<GLfloat>(interpStart.y), r, g, b, a,
+        0.0f,0.0f };
+        Vertex v2 = { static_cast<GLfloat>(interpEnd.x), lineHeight, static_cast<GLfloat>(interpEnd.y), r, g, b, a,
+        1.0f,1.0f };
 
         m_lines.push_back(v1);
         m_lines.push_back(v2);
@@ -1140,15 +1144,40 @@ GLuint CityGen::loadTexture(const std::string& filepath) {
 }
 #pragma region Render
 
+void CityGen::pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices)
+{
+    // glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    // glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));                      // Position
+    glEnableVertexAttribArray(0);
+
+    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(GLfloat)));  // UVs
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, r));
+    glEnableVertexAttribArray(1);
+    
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
+    glEnableVertexAttribArray(2);
+}
+
 void CityGen::buildVertexData() {
     // /*
     m_vertices.clear();
-    m_lines.clear();
+    // m_lines.clear();
     
     for (size_t i = 0; i < m_buildings.size(); i++) {
         vector<Point> x = m_buildings[i];
     
         m_buildings[i] = scalePolygon(x, 0.85f);
+        //write new polygon scaling logic;
+        //Have each vertex move towards centroid by a certain amount,
+        //if amount >= distance between centroid and vertex cancel
+        //go through all verticies and delete ones that are close to eachother
+        //Can store vertex before and compare after.
     }
     
     vector<GLubyte> colors = {
@@ -1179,6 +1208,7 @@ void CityGen::buildVertexData() {
         float texWidth = 0.5f;  // Texture width in pixels
         float texHeight = 0.5f; // Texture height in pixels
         
+        //WALL VERTS
         for (size_t j = 0; j < cell.size(); ++j) {
             Point p1 = cell[j];
             Point p2 = cell[(j + 1) % cell.size()];
@@ -1222,17 +1252,13 @@ void CityGen::buildVertexData() {
             // top1.y += 0.1f;
             // topVertices.push_back(top1);
         }
+        
 
-        // cout << "Building " << i << " Roof Vertices:" << endl;
-        // for (const auto& v : topVertices) {
-        //     cout << "Vertex: (" << v.x << ", " << v.y << ", " << v.z << ")" << endl;
-        // }
-
+        //ROOF - TOP VERTS
         // for (size_t j = 1; j < topVertices.size() - 1; ++j) {
         //     Vertex v1 = topVertices[0];
         //     Vertex v2 = topVertices[j];
         //     Vertex v3 = topVertices[j + 1];
-
         //     // Add roof triangles
         //     m_vertices.push_back(v1);
         //     m_vertices.push_back(v3);
@@ -1240,6 +1266,23 @@ void CityGen::buildVertexData() {
         //     // m_vertices.push_back(v3);
         // }
     }
+    
+    m_lines.clear();
+    for (size_t i = 0; i < m_voronoiCells.size(); ++i) 
+    {
+        const vector<Point>& cell = m_voronoiCells[i];     
+        GLubyte r = 255;
+        GLubyte g = 255;
+        GLubyte b = 255;
+        GLubyte a = 255;
+        for (size_t j = 0; j < cell.size(); ++j) {
+            Point p1 = cell[j];
+            Point p2 = cell[(j + 1) % cell.size()];
+            
+            addRoadDecals(p1,p2);
+        }
+    }
+
     if(Debug)
     {
         for (size_t j = 0; j < m_voronoiCells.size(); ++j) //debugs
@@ -1288,7 +1331,6 @@ void CityGen::buildVertexData() {
         }
 
     }
-    //bro
 
 /*UV DEBUG
     Vertex x00 = { static_cast<GLfloat>(-20.0f), 20.0f, static_cast<GLfloat>(0.0f),
@@ -1318,23 +1360,10 @@ void CityGen::buildVertexData() {
 
     // Create and bind VAO and VBO
     glGenVertexArrays(1, &m_vao);
-    glBindVertexArray(m_vao);
-
     glGenBuffers(1, &m_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-    glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));                      // Position
-    glEnableVertexAttribArray(0);
-
-    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(GLfloat)));  // UVs
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, r));
-    glEnableVertexAttribArray(1);
+    pushVertexData(m_vao,m_vbo,m_vertices);
     
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
-
-    glEnableVertexAttribArray(2);
-
+    //Debugging UV
     // GLint positionLoc = glGetAttribLocation(m_program, "a_position");
     // GLint texcoordLoc = glGetAttribLocation(m_program, "a_texcoord");
     // std::cout << "Position Attribute Location: " << positionLoc << std::endl;
@@ -1345,19 +1374,14 @@ void CityGen::buildVertexData() {
     // std::cout << "Buffer Data Size: " << m_vertices.size() * sizeof(Vertex) << " bytes" << std::endl;
     // std::cout << "Stride: " << sizeof(Vertex) << " bytes" << std::endl;
     //---
-    // Unbind VAO
-    // glBindVertexArray(0);
-    // m_numLines = static_cast<int>(m_lines.size());
-    // glGenVertexArrays(1, &m_vaoLines);
-    // glBindVertexArray(m_vaoLines);
-    // glGenBuffers(1, &m_vboLines);
-    // glBindBuffer(GL_ARRAY_BUFFER, m_vboLines);
-    // glBufferData(GL_ARRAY_BUFFER, m_lines.size() * sizeof(Vertex), m_lines.data(), GL_STATIC_DRAW);
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-    // glEnableVertexAttribArray(0);
-    // glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)(3 * sizeof(GLfloat)));
-    // glEnableVertexAttribArray(1);
-    //---
+
+    // LINES - Unbind VAO
+    glBindVertexArray(0);
+    m_numLines = static_cast<int>(m_lines.size());
+    glGenVertexArrays(1, &m_vaoLines);
+    glGenBuffers(1, &m_vboLines);
+    pushVertexData(m_vaoLines,m_vboLines,m_lines);
+
     // std::cout << "Vertex Data:" << std::endl;
     // for (const auto& v : m_vertices) {
     //     std::cout << "Position: (" << v.x << ", " << v.y << ", " << v.z << ")";
@@ -1379,7 +1403,7 @@ void CityGen::generate(GLuint program) {
     // {50,50}};
 
     computeVoronoiDiagram();
-    // computeChunks();
+    computeChunks();
     sweepToBlocks();
     buildVertexData();
 }
@@ -1435,11 +1459,11 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     glBindVertexArray(0);
 
     // Render m_lines (dotted lines)
-    // glLineWidth(5.0f);
-    // glEnable(GL_LINE_SMOOTH);
-    // glBindVertexArray(m_vaoLines);
-    // glDrawArrays(GL_LINES, 0, m_numLines);
-    // glBindVertexArray(0);
+    glLineWidth(5.0f);
+    glEnable(GL_LINE_SMOOTH);
+    glBindVertexArray(m_vaoLines);
+    glDrawArrays(GL_LINES, 0, m_numLines);
+    glBindVertexArray(0);
     
     //--
     
