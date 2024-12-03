@@ -26,6 +26,7 @@ private:
     // OpenGL related variables
     GLuint otherShader;
     GLuint m_program;
+    GLuint textureID;
     GLuint m_vao, m_vbo;
     GLuint m_vaoLines, m_vboLines;
     vector<Vertex> m_vertices;
@@ -35,7 +36,7 @@ private:
     int m_numLines;
 
     // Voronoi diagram parameters
-    const int numSites = 33;
+    const int numSites = 23;
     float moveAmount = 25.0f;
     float maxMoveAmount = 30.0f;
     float minMoveAmount = 20.0f;
@@ -50,6 +51,7 @@ private:
     const double epsilon = 1e-9;
 
     // Geometric and utility functions
+    GLuint loadTexture(const std::string& filepath);
     void drawCrosswalk(Point base, Point direction, float lineLength, float spacing, float lineHeight);
     vector<pair<Point, Point>> findSharedEdges(const vector<vector<Point>>& polygons);
     void addRoadDecals(Point p1, Point p2);

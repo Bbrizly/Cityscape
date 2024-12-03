@@ -11,10 +11,11 @@
 #include <glm/glm.hpp>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <stb_image.h>
 using namespace std;
 using namespace glm;
 vector<Cube> cubes;
-
+#pragma region ALL
 #pragma region Mathematical shit
 bool findLineIntersection(const Line& l1, const Line& l2, Point& intersection) {
     // Calculate the determinant
@@ -995,7 +996,7 @@ void CityGen::sweepToBlocks()
         while(!m_strips.empty())
         {
             iterationAmount++;
-            cout<<"\n\n\nSTRIP SIZE: "<<m_strips.size()<<"\n\n"<<endl;
+            // cout<<"\n\n\nSTRIP SIZE: "<<m_strips.size()<<"\n\n"<<endl;
 
             moveAmount = dis(gen);
 
@@ -1007,7 +1008,7 @@ void CityGen::sweepToBlocks()
 
             for (size_t j = 0; j < m_strips.size(); j++)
             {
-                cout<<"Loop: "<<j<<"\n"<<endl;
+                // cout<<"Loop: "<<j<<"\n"<<endl;
 
                 vector<Point> currPolygon = m_strips[j];
     
@@ -1015,11 +1016,11 @@ void CityGen::sweepToBlocks()
                 vector<Point> positive = clipped.first;
                 vector<Point> negative = clipped.second;
     
-                cout << " - Positive side: " << positive.size() <<
-                " , Negative side: " << negative.size() << endl;
+                // cout << " - Positive side: " << positive.size() <<
+                // " , Negative side: " << negative.size() << endl;
     
                 if((positive.empty() && negative.empty())) {
-                    cout << "Both empty" << j + 1 << ". Skipping." << endl;
+                    // cout << "Both empty" << j + 1 << ". Skipping." << endl;
                     continue;
                 }
     
@@ -1031,8 +1032,8 @@ void CityGen::sweepToBlocks()
                 // bool negativeMeetsCriteria = (calculatePolygonArea(negative) <= minPolygonArea ||
                 // (findSmallestEdgeAmount(negative, minEdge2) && negative.size() <= 4));
 
-                cout << "Positive: " << (positiveMeetsCriteria ? "True" : "False") 
-                     << ", Negative: " << (negativeMeetsCriteria ? "True" : "False") << endl;
+                // cout << "Positive: " << (positiveMeetsCriteria ? "True" : "False") 
+                //      << ", Negative: " << (negativeMeetsCriteria ? "True" : "False") << endl;
                     
                 if((positiveMeetsCriteria) || (negativeMeetsCriteria))
                 {
@@ -1049,13 +1050,13 @@ void CityGen::sweepToBlocks()
                     else
                     {
                         m_buildings.push_back(currPolygon);
-                        cout << "Criteria MET Added strip " << j + 1 << " as a building." << endl;
+                        // cout << "Criteria MET Added strip " << j + 1 << " as a building." << endl;
                     }
                 }
                 else if(keepPositiveSide)
                 {
                     if(positive.empty()) {
-                        cout << "Positive empty for strip " << j + 1 << ". Skipping." << endl;
+                        // cout << "Positive empty for strip " << j + 1 << ". Skipping." << endl;
                     }else
                     {
                         currPolygon = positive;
@@ -1066,7 +1067,7 @@ void CityGen::sweepToBlocks()
                         if(calculatePolygonArea(negative) > minPolygonArea)
                         {
                             m_buildings.push_back(negative);
-                            cout << "negative side as a building for strip " << j + 1 << "." << endl;
+                            // cout << "negative side as a building for strip " << j + 1 << "." << endl;
 
                         }                        
                     }
@@ -1074,7 +1075,7 @@ void CityGen::sweepToBlocks()
                 else
                 {
                     if(negative.empty()) {
-                        cout << "Negative empty for strip " << j + 1 << ". Skipping." << endl;
+                        // cout << "Negative empty for strip " << j + 1 << ". Skipping." << endl;
                     }
                     else
                     {
@@ -1086,7 +1087,7 @@ void CityGen::sweepToBlocks()
                         if(calculatePolygonArea(positive) > minPolygonArea)
                         {
                             m_buildings.push_back(positive);
-                            cout << "positive side as a building for strip " << j + 1 << "." << endl;
+                            // cout << "positive side as a building for strip " << j + 1 << "." << endl;
                         }
                     }
 
@@ -1100,12 +1101,50 @@ void CityGen::sweepToBlocks()
 }
 #pragma endregion
 
+#pragma endregion
+GLuint CityGen::loadTexture(const std::string& filepath) {
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    // Load the image
+    int width, height, channels;
+    unsigned char* data = stbi_load(filepath.c_str(), &width, &height, &channels, 0);
+    if (!data) {
+        std::cerr << "Failed to load texture: " << filepath << std::endl;
+        return 0;
+    }
+
+    // Determine the image format
+    GLenum format = GL_RGB;
+    if (channels == 1) format = GL_RED;
+    else if (channels == 4) format = GL_RGBA;
+
+    // Upload texture data
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Generate mipmaps
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Free image data and unbind texture
+    stbi_image_free(data);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    return textureID;
+}
 #pragma region Render
+
 void CityGen::buildVertexData() {
     // /*
     m_vertices.clear();
     m_lines.clear();
-
+    
     for (size_t i = 0; i < m_buildings.size(); i++) {
         vector<Point> x = m_buildings[i];
     
@@ -1125,7 +1164,7 @@ void CityGen::buildVertexData() {
     200, 200, 200  // Light Gray (stands out against black)
     };  
 
-    float wallHeight = 8.0f;
+    float wallHeight = 40.0f;
     
     vector<Vertex> topVertices;
     for (size_t i = 0; i < m_buildings.size(); ++i) { //m_buildings.size()
@@ -1137,15 +1176,38 @@ void CityGen::buildVertexData() {
         GLubyte b = colors[(i * 3 + 2) % colors.size()];
         GLubyte a = 255;
         
+        float texWidth = 0.5f;  // Texture width in pixels
+        float texHeight = 0.5f; // Texture height in pixels
+        
         for (size_t j = 0; j < cell.size(); ++j) {
             Point p1 = cell[j];
             Point p2 = cell[(j + 1) % cell.size()];
+            float width = distanceBetweenPoints(p1,p2);
 
-            Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a };
-            Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a };
+            float tileU = width / texWidth;      // How many times to tile horizontally
+            float tileV = wallHeight / texHeight;
 
-            Vertex top1 = { static_cast<GLfloat>(p1.x), wallHeight, static_cast<GLfloat>(p1.y), r, g, b, a };
-            Vertex top2 = { static_cast<GLfloat>(p2.x), wallHeight, static_cast<GLfloat>(p2.y), r, g, b, a };
+            tileU = 1.0f;
+            tileV = 1.0f;
+
+            Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a, 
+            0.0f,0.0f };
+            Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a,
+            tileU,0.0f };
+
+            Vertex top1 = { static_cast<GLfloat>(p1.x), wallHeight, static_cast<GLfloat>(p1.y), r, g, b, a,
+            0.0f,tileV };
+            Vertex top2 = { static_cast<GLfloat>(p2.x), wallHeight, static_cast<GLfloat>(p2.y), r, g, b, a,
+            tileU,tileV};
+
+            // Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a, 
+            // 0.0f,0.0f };
+            // Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a,
+            // 1.0f,0.0f };
+            // Vertex top1 = { static_cast<GLfloat>(p1.x), wallHeight, static_cast<GLfloat>(p1.y), r, g, b, a,
+            // 0.0f,1.0f };
+            // Vertex top2 = { static_cast<GLfloat>(p2.x), wallHeight, static_cast<GLfloat>(p2.y), r, g, b, a,
+            // 1.0f,1.0f };
 
             m_vertices.push_back(v1);
             m_vertices.push_back(top1);
@@ -1158,7 +1220,7 @@ void CityGen::buildVertexData() {
             // m_vertices.push_back(top2);
             
             // top1.y += 0.1f;
-            topVertices.push_back(top1);
+            // topVertices.push_back(top1);
         }
 
         // cout << "Building " << i << " Roof Vertices:" << endl;
@@ -1166,57 +1228,18 @@ void CityGen::buildVertexData() {
         //     cout << "Vertex: (" << v.x << ", " << v.y << ", " << v.z << ")" << endl;
         // }
 
-        for (size_t j = 1; j < topVertices.size() - 1; ++j) {
-            Vertex v1 = topVertices[0];
-            Vertex v2 = topVertices[j];
-            Vertex v3 = topVertices[j + 1];
+        // for (size_t j = 1; j < topVertices.size() - 1; ++j) {
+        //     Vertex v1 = topVertices[0];
+        //     Vertex v2 = topVertices[j];
+        //     Vertex v3 = topVertices[j + 1];
 
-            // Add roof triangles
-            m_vertices.push_back(v1);
-            m_vertices.push_back(v3);
-            m_vertices.push_back(v2);
-            // m_vertices.push_back(v3);
-        }
+        //     // Add roof triangles
+        //     m_vertices.push_back(v1);
+        //     m_vertices.push_back(v3);
+        //     m_vertices.push_back(v2);
+        //     // m_vertices.push_back(v3);
+        // }
     }
-    
-    // const int numSegments = 10; // Number of segments to create along the line
-    // const float gapRatio = 0.5f; // Ratio of gap to solid part of the line
-
-    for (size_t i = 0; i < m_voronoiCells.size(); ++i) 
-    {
-        const vector<Point>& cell = m_voronoiCells[i];     
-        GLubyte r = 255;
-        GLubyte g = 255;
-        GLubyte b = 255;
-        GLubyte a = 255;
-        for (size_t j = 0; j < cell.size(); ++j) {
-            Point p1 = cell[j];
-            Point p2 = cell[(j + 1) % cell.size()];
-            
-            addRoadDecals(p1,p2);
-        }
-    }
-
-
-    /*
-    for (size_t i = 0; i < m_voronoiCells.size(); ++i) {
-        const vector<Point>& cell = m_voronoiCells[i];     
-        GLubyte r = colors[(i * 3) % colors.size()];
-        GLubyte g = colors[(i * 3 + 1) % colors.size()];
-        GLubyte b = colors[(i * 3 + 2) % colors.size()];
-        GLubyte a = 255;
-        for (size_t j = 0; j < cell.size(); ++j) {
-            Point p1 = cell[j];
-            Point p2 = cell[(j + 1) % cell.size()];
-            
-            Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a };
-            Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a };
-            
-            m_lines.push_back(v1);
-            m_lines.push_back(v2);
-        }   
-    }*/
-
     if(Debug)
     {
         for (size_t j = 0; j < m_voronoiCells.size(); ++j) //debugs
@@ -1249,8 +1272,47 @@ void CityGen::buildVertexData() {
             m_lines.push_back(v1);
             m_lines.push_back(v2);
         }
+        for (size_t i = 0; i < m_voronoiCells.size(); ++i) 
+        {
+            const vector<Point>& cell = m_voronoiCells[i];     
+            GLubyte r = 255;
+            GLubyte g = 255;
+            GLubyte b = 255;
+            GLubyte a = 255;
+            for (size_t j = 0; j < cell.size(); ++j) {
+                Point p1 = cell[j];
+                Point p2 = cell[(j + 1) % cell.size()];
+                
+                addRoadDecals(p1,p2);
+            }
+        }
+
     }
+    //bro
+
+/*UV DEBUG
+    Vertex x00 = { static_cast<GLfloat>(-20.0f), 20.0f, static_cast<GLfloat>(0.0f),
+    255, 255, 255, 255,
+    0.0f,0.0f };
+    Vertex x10 = { static_cast<GLfloat>(20.0f), 20.0f, static_cast<GLfloat>(0.0f),
+    255, 255, 255, 255,
+    1.0f,0.0f };
+    Vertex x01 = { static_cast<GLfloat>(-20.0f), 60.0f, static_cast<GLfloat>(0.0f),
+    255, 255, 255, 255,
+    0.0f,1.0f };
+    Vertex x11 = { static_cast<GLfloat>(20.0f), 60.0f, static_cast<GLfloat>(0.0f),
+    255, 255, 255, 255,
+    1.0f,1.0f };
+
+    m_vertices.push_back(x00);
+    m_vertices.push_back(x10);
+    m_vertices.push_back(x11);
     
+    m_vertices.push_back(x00);
+    m_vertices.push_back(x11);
+    m_vertices.push_back(x01);
+*/
+
     #pragma region Vertex Prep
     m_numVertices = static_cast<int>(m_vertices.size());// * 5.0f); // sussyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
 
@@ -1262,31 +1324,45 @@ void CityGen::buildVertexData() {
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
 
-    // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));                      // Position
     glEnableVertexAttribArray(0);
 
-    // Color attribute
-    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)(3 * sizeof(GLfloat)));
+    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(GLfloat)));  // UVs
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, r));
     glEnableVertexAttribArray(1);
+    
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
 
+    glEnableVertexAttribArray(2);
+
+    // GLint positionLoc = glGetAttribLocation(m_program, "a_position");
+    // GLint texcoordLoc = glGetAttribLocation(m_program, "a_texcoord");
+    // std::cout << "Position Attribute Location: " << positionLoc << std::endl;
+    // std::cout << "Texcoord Attribute Location: " << texcoordLoc << std::endl;
+    // std::cout << "sizeof(Vertex): " << sizeof(Vertex) << std::endl;
+    // std::cout << "Offset of Position: " << offsetof(Vertex, x) << std::endl;
+    // std::cout << "Offset of UV: " << offsetof(Vertex, u) << std::endl;
+    // std::cout << "Buffer Data Size: " << m_vertices.size() * sizeof(Vertex) << " bytes" << std::endl;
+    // std::cout << "Stride: " << sizeof(Vertex) << " bytes" << std::endl;
+    //---
     // Unbind VAO
-    glBindVertexArray(0);
-
-    m_numLines = static_cast<int>(m_lines.size());
-
-    glGenVertexArrays(1, &m_vaoLines);
-    glBindVertexArray(m_vaoLines);
-
-    glGenBuffers(1, &m_vboLines);
-    glBindBuffer(GL_ARRAY_BUFFER, m_vboLines);
-    glBufferData(GL_ARRAY_BUFFER, m_lines.size() * sizeof(Vertex), m_lines.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
+    // glBindVertexArray(0);
+    // m_numLines = static_cast<int>(m_lines.size());
+    // glGenVertexArrays(1, &m_vaoLines);
+    // glBindVertexArray(m_vaoLines);
+    // glGenBuffers(1, &m_vboLines);
+    // glBindBuffer(GL_ARRAY_BUFFER, m_vboLines);
+    // glBufferData(GL_ARRAY_BUFFER, m_lines.size() * sizeof(Vertex), m_lines.data(), GL_STATIC_DRAW);
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    // glEnableVertexAttribArray(0);
+    // glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)(3 * sizeof(GLfloat)));
+    // glEnableVertexAttribArray(1);
+    //---
+    // std::cout << "Vertex Data:" << std::endl;
+    // for (const auto& v : m_vertices) {
+    //     std::cout << "Position: (" << v.x << ", " << v.y << ", " << v.z << ")";
+    //     std::cout << " UV: (" << v.u << ", " << v.v << ")" << std::endl;
+    // }
 
     glBindVertexArray(0);
     // */
@@ -1297,10 +1373,6 @@ void CityGen::generate(GLuint program) {
     
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
     m_sites = generateSites(numSites, seed);
-    
-    Cube c(vec3(0),vec3(10),vec3(0),vec4(255));
-    c.init(program);
-    cubes.push_back(c);
     
     // m_sites = {
     // {-50,-50},
@@ -1337,8 +1409,6 @@ void CityGen::reGenerate() {
 }
 void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
 
-    // cubes[0].draw(proj,view,m_timer);
-    // return;
     glUseProgram(m_program);
 
     // Set uniform variables
@@ -1352,18 +1422,24 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     if (worldLoc != -1) glUniformMatrix4fv(worldLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
     if (timeLoc != -1) glUniformMatrix4fv(timeLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(m_timer)));
 
-    // cubes[0].draw(proj,view,m_timer);
+    textureID = loadTexture("data/HighRiseResidentialTemp.jpg");
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glGenerateMipmap(GL_TEXTURE_2D);
     
     glBindVertexArray(m_vao);
     glDrawArrays(GL_TRIANGLES, 0, m_numVertices);
     glBindVertexArray(0);
 
     // Render m_lines (dotted lines)
-    glLineWidth(5.0f);
-    glEnable(GL_LINE_SMOOTH);
-    glBindVertexArray(m_vaoLines);
-    glDrawArrays(GL_LINES, 0, m_numLines);
-    glBindVertexArray(0);
+    // glLineWidth(5.0f);
+    // glEnable(GL_LINE_SMOOTH);
+    // glBindVertexArray(m_vaoLines);
+    // glDrawArrays(GL_LINES, 0, m_numLines);
+    // glBindVertexArray(0);
     
     //--
     
