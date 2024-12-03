@@ -971,16 +971,16 @@ void CityGen::sweepToBlocks()
         Point oppVector = oppositeVector(directionVector.x, directionVector.y);
 
         goToPoint = centerPoint;
-        addLineToVector(goToPoint,oppVector);
+        // addLineToVector(goToPoint,oppVector);
         goToPoint = movePointInDirection(goToPoint, oppVector, distance);
-        addLineToVector(goToPoint,directionVector);
+        // addLineToVector(goToPoint,directionVector);
         
         cout<<"\n\nDistance: "<<distance<<endl;
 
         // largestEdge = moveToPoint(largestEdge, centerPoint);
         largestEdge = makePerpendicularLine(largestEdge);
         largestEdge = moveToPoint(largestEdge, goToPoint);
-        debugs1.push_back(findIntersectionsWithBoundary(largestEdge));
+        // debugs1.push_back(findIntersectionsWithBoundary(largestEdge));
 
         eval = evaluate(largestEdge, centerPoint);
         keepPositiveSide = eval > 0;
@@ -1000,10 +1000,10 @@ void CityGen::sweepToBlocks()
             moveAmount = dis(gen);
 
             goToPoint = movePointInDirection(goToPoint, directionVector, moveAmount);
-            addLineToVector(goToPoint,directionVector);
+            // addLineToVector(goToPoint,directionVector);
             largestEdge = moveToPoint(largestEdge, goToPoint);
 
-            debugs1.push_back(findIntersectionsWithBoundary(largestEdge));
+            // debugs1.push_back(findIntersectionsWithBoundary(largestEdge));
 
             for (size_t j = 0; j < m_strips.size(); j++)
             {
@@ -1161,10 +1161,10 @@ void CityGen::buildVertexData() {
             topVertices.push_back(top1);
         }
 
-        cout << "Building " << i << " Roof Vertices:" << endl;
-        for (const auto& v : topVertices) {
-            cout << "Vertex: (" << v.x << ", " << v.y << ", " << v.z << ")" << endl;
-        }
+        // cout << "Building " << i << " Roof Vertices:" << endl;
+        // for (const auto& v : topVertices) {
+        //     cout << "Vertex: (" << v.x << ", " << v.y << ", " << v.z << ")" << endl;
+        // }
 
         for (size_t j = 1; j < topVertices.size() - 1; ++j) {
             Vertex v1 = topVertices[0];
@@ -1219,36 +1219,36 @@ void CityGen::buildVertexData() {
 
     if(Debug)
     {
-        for (size_t j = 0; j < debugs.size(); ++j)
+        for (size_t j = 0; j < m_voronoiCells.size(); ++j) //debugs
         {
-            if(debugs[j].empty()) continue;
-            Point p1 = debugs[j][0];
-            Point p2 = debugs[j][1];
+            if(m_voronoiCells[j].empty()) continue;
+            Point p1 = m_voronoiCells[j][0];
+            Point p2 = m_voronoiCells[j][1];
             Vertex v1 = { static_cast<GLfloat>(p1.x), 10.0f, static_cast<GLfloat>(p1.y), 255, 0, 0, 255};
             Vertex v2 = { static_cast<GLfloat>(p2.x), 10.0f, static_cast<GLfloat>(p2.y), 255, 0, 0, 255};
-            m_vertices.push_back(v1);
-            m_vertices.push_back(v2);
+            m_lines.push_back(v1);
+            m_lines.push_back(v2);
         }
-        for (size_t j = 0; j < debugs1.size(); ++j)
-        {
-            if(debugs1[j].empty()) continue;
-            Point p1 = debugs1[j][0];
-            Point p2 = debugs1[j][1];
-            Vertex v1 = { static_cast<GLfloat>(p1.x), 20.0f, static_cast<GLfloat>(p1.y), 0, 0, 255, 255};
-            Vertex v2 = { static_cast<GLfloat>(p2.x), 20.0f, static_cast<GLfloat>(p2.y), 0, 0, 255, 255};
-            m_vertices.push_back(v1);
-            m_vertices.push_back(v2);
-        }
+        // for (size_t j = 0; j < debugs1.size(); ++j)
+        // {
+        //     if(debugs1[j].empty()) continue;
+        //     Point p1 = debugs1[j][0];
+        //     Point p2 = debugs1[j][1];
+        //     Vertex v1 = { static_cast<GLfloat>(p1.x), 20.0f, static_cast<GLfloat>(p1.y), 0, 0, 255, 255};
+        //     Vertex v2 = { static_cast<GLfloat>(p2.x), 20.0f, static_cast<GLfloat>(p2.y), 0, 0, 255, 255};
+        //     m_lines.push_back(v1);
+        //     m_lines.push_back(v2);
+        // }
         for (size_t j = 0; j < debugs2.size(); ++j)
-    {
-        if(debugs2[j].empty()) continue;
-        Point p1 = debugs2[j][0];
-        Point p2 = debugs2[j][1];
-        Vertex v1 = { static_cast<GLfloat>(p1.x), 30.0f, static_cast<GLfloat>(p1.y), 0, 255, 0, 255};
-        Vertex v2 = { static_cast<GLfloat>(p2.x), 30.0f, static_cast<GLfloat>(p2.y), 0, 255, 0, 255};
-        m_vertices.push_back(v1);
-        m_vertices.push_back(v2);
-    }
+        {
+            if(debugs2[j].empty()) continue;
+            Point p1 = debugs2[j][0];
+            Point p2 = debugs2[j][1];
+            Vertex v1 = { static_cast<GLfloat>(p1.x), 30.0f, static_cast<GLfloat>(p1.y), 0, 255, 0, 255};
+            Vertex v2 = { static_cast<GLfloat>(p2.x), 30.0f, static_cast<GLfloat>(p2.y), 0, 255, 0, 255};
+            m_lines.push_back(v1);
+            m_lines.push_back(v2);
+        }
     }
     
     #pragma region Vertex Prep
@@ -1307,7 +1307,7 @@ void CityGen::generate(GLuint program) {
     // {50,50}};
 
     computeVoronoiDiagram();
-    computeChunks();
+    // computeChunks();
     sweepToBlocks();
     buildVertexData();
 }

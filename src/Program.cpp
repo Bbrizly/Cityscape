@@ -42,13 +42,11 @@ void Program::init()
         otherShader = wolf::LoadShaders("data/floor.vsh", "data/floor.fsh");
         city.generate(cubeShader);
 
-        // floorShader = wolf::LoadShaders("data/floor.vsh", "data/floor.fsh");
-        // floorr.init(floorShader);
 
-        m_pCamera = new FirstPersonCamera(m_pApp);
+        // m_pCamera = new FirstPersonCamera(m_pApp);
 
-        // m_pOrbitCam = new OrbitCamera(m_pApp);
-        // m_pOrbitCam->focusOn(vec3(-5.0f, -5.0f, -5.0f), vec3(0.0f, 100.0f, 0.0f));
+        m_pOrbitCam = new OrbitCamera(m_pApp);
+        m_pOrbitCam->focusOn(vec3(-5.0f, -5.0f, -5.0f), vec3(0.0f, 100.0f, 0.0f));
     }
 }
 
@@ -56,8 +54,8 @@ void Program::update(float x)
 {
 	m_timer += x;
     
-    if(m_pCamera) {m_pCamera->update(x);}
-    // if (m_pOrbitCam) {m_pOrbitCam->update(x);}
+    // if(m_pCamera) {m_pCamera->update(x);}
+    if (m_pOrbitCam) {m_pOrbitCam->update(x);}
 }
 
 void Program::render(int width, int height)
@@ -70,10 +68,10 @@ void Program::render(int width, int height)
 
     glUseProgram(cubeShader);
 
-    mat4 mProj = m_pCamera->getProjMatrix(width, height);
-    mat4 mView = m_pCamera->getViewMatrix();
-    // mat4 mProj = m_pOrbitCam->getProjMatrix(width, height);
-    // mat4 mView = m_pOrbitCam->getViewMatrix();
+    // mat4 mProj = m_pCamera->getProjMatrix(width, height);
+    // mat4 mView = m_pCamera->getViewMatrix();
+    mat4 mProj = m_pOrbitCam->getProjMatrix(width, height);
+    mat4 mView = m_pOrbitCam->getViewMatrix();
 
     glEnable(GL_DEBUG_OUTPUT);
 
