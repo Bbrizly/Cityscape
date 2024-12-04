@@ -31,12 +31,12 @@ private:
     GLuint m_vaoLines, m_vboLines;
     vector<Vertex> m_vertices;
     vector<Vertex> m_lines;
-    bool Debug = false;
+    bool Debug = true;//false;
     int m_numVertices;
     int m_numLines;
 
     // Voronoi diagram parameters
-    const int numSites = 23;
+    const int numSites = 40;
     float moveAmount = 25.0f;
     float maxMoveAmount = 30.0f;
     float minMoveAmount = 20.0f;

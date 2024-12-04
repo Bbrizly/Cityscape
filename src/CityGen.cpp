@@ -414,7 +414,7 @@ pair<vector<Point>, vector<Point>> CityGen::clipPolygon(vector<Point> polygon, L
             polygonNegative.push_back(curr);
         }
 
-        prev = curr;
+        prev = curr; 
         prevEval = currEval;
     }
 
@@ -647,13 +647,15 @@ void CityGen::addRoadDecals(Point p1, Point p2) {
     float lineHeight = 0.01f;
     float lineLength = 5.0f;
     float gapLength = 8.0f;
-    float intersection = 20.0f;
-    float crosswalkWidth = 10.0f; // Width of crosswalk
+    float intersection = 15.0f;
+    float crosswalkWidth = 8.0f; // Width of crosswalk
     float crosswalkSpacing = 1.5f; // Spacing between lines in the crosswalk
     float crosswalkLineLength = 5.0f; // Length of each line in the crosswalk
+    float minRoadLength = 30.0f;
 
     float totalLength = distanceBetweenPoints(p1, p2);
-    if ((totalLength * 0.65) <= (intersection * 2)) {
+    if ((totalLength * 0.65) <= (intersection * 2)
+    ||   totalLength <= minRoadLength) {
         return;
     }
 
@@ -832,10 +834,125 @@ void CityGen::computeChunks() {
     mt19937 gen(seed);
     std::uniform_int_distribution<int> chanceDist(1, 8);
 
+    float minimumArea = 600.0f;
+    float minimumEdgeLength = 50.0f;
+
+    size_t currentChunkIndex = 0;
+    vector<vector<Point>> tempPolygonList;
+
+    for(auto currentChunk : m_chunks) {
+        // vector<Point> currentChunk = m_chunks[currentChunkIndex];
+        if (calculatePolygonArea(currentChunk) <= minimumArea
+         || currentChunk.size() <= 3)
+        {
+            tempPolygonList.push_back(currentChunk);
+            continue;
+        }
+
+        pair<Point, Point> largestEdge = findLargestEdge(currentChunk);
+        float edgeLength = distanceBetweenPoints(largestEdge.first, largestEdge.second);
+
+        // Skip if the largest edge is too short
+        if (edgeLength <= minimumEdgeLength) {
+            tempPolygonList.push_back(currentChunk);
+            continue;
+        }
+
+        uniform_int_distribution<int> splitDist(0, static_cast<int>(currentChunk.size() - 1));
+        int index = splitDist(gen);
+        // int index = 1; //removed randomizing
+        int nextIndex = (index + 1) % currentChunk.size();
+
+        Line cut = CreateLineFromPoints(currentChunk[index], currentChunk[nextIndex]);
+        cut = moveLineToCenter(cut, currentChunk);
+
+        auto clipped = clipPolygon(currentChunk, cut);
+        // vector<Point> positive = clipped.first;
+        // vector<Point> negative = clipped.second;
+        tempPolygonList.push_back(clipped.first);
+        tempPolygonList.push_back(clipped.second);
+
+        // if (!positive.empty()) {
+        //     tempPolygonList.push_back(positive);
+        // }
+        // if (!negative.empty()) {
+        //     tempPolygonList.push_back(negative);
+        // }
+    }
+    m_chunks = tempPolygonList;
+
+    m_voronoiCells = tempPolygonList;
+
+    // for (size_t i = 0; i < m_chunks.size(); i++) {
+    //     vector<Point> x = m_chunks[i];
+    //     m_chunks[i] = scalePolygon(x, 0.85f);
+    //     // m_blocks[i] = scalePolygon(x, 0.85f);
+    // }
+    /*
+    m_chunks = m_voronoiCells;
+
+    float minimumArea = 600.0f;
+    float minimumEdgeLength = 20.0f;
+
     size_t currentChunkIndex = 0;
 
     while (currentChunkIndex < m_chunks.size()) {
         vector<Point> currentChunk = m_chunks[currentChunkIndex];
+
+        // Skip small polygons
+        if (calculatePolygonArea(currentChunk) <= minimumArea || currentChunk.size() < 3) {
+            currentChunkIndex++;
+            continue;
+        }
+
+        // Find the largest edge of the polygon
+        pair<Point, Point> largestEdge = findLargestEdge(currentChunk);
+        float edgeLength = distanceBetweenPoints(largestEdge.first, largestEdge.second);
+
+        // Skip if the largest edge is too short
+        if (edgeLength <= minimumEdgeLength) {
+            currentChunkIndex++;
+            continue;
+        }
+
+        // Create a perpendicular bisector for the largest edge
+        Line bisector = perpendicularBisector(largestEdge.first, largestEdge.second);
+        bisector = moveLineToCenter(bisector, currentChunk);
+
+        // Split the polygon using the bisector
+        auto clipped = clipPolygon(currentChunk, bisector);
+        vector<Point> positive = clipped.first;
+        vector<Point> negative = clipped.second;
+
+        // Add the resulting polygons back if they're valid
+        if (!positive.empty()) {
+            m_chunks.push_back(positive);
+        }
+        if (!negative.empty()) {
+            m_chunks.push_back(negative);
+        }
+
+        // Remove the current chunk
+        m_chunks.erase(m_chunks.begin() + currentChunkIndex);
+    }*/
+    /*
+    // m_voronoiCells = m_chunks;
+    m_chunks = m_voronoiCells;
+
+    unsigned int seed = static_cast<unsigned int>(time(nullptr));
+    mt19937 gen(seed);
+    std::uniform_int_distribution<int> chanceDist(1, 8);
+
+    float minimumArea = 600.0f;
+
+    size_t currentChunkIndex = 0;
+
+    while (currentChunkIndex < m_chunks.size()) {
+        vector<Point> currentChunk = m_chunks[currentChunkIndex];
+        if (calculatePolygonArea(currentChunk) <= minimumArea)
+        {
+            currentChunkIndex++; continue;
+        }
         
         if (currentChunk.empty() || (chanceDist(gen) == 1)) // 1 in 8 chance of skipping step
         {currentChunkIndex++; continue;}
@@ -876,11 +993,15 @@ void CityGen::computeChunks() {
         }
     }
 
-    for (size_t i = 0; i < m_chunks.size(); i++) {
-        vector<Point> x = m_chunks[i];
-        m_chunks[i] = scalePolygon(x, 0.85f);
-        // m_blocks[i] = scalePolygon(x, 0.85f);
-    }
+    // m_voronoiCells = m_chunks;
+
+    // for (size_t i = 0; i < m_chunks.size(); i++) {
+    //     vector<Point> x = m_chunks[i];
+    //     m_chunks[i] = scalePolygon(x, 0.85f);
+    //     // m_blocks[i] = scalePolygon(x, 0.85f);
+    // }
+
+    */
 }
 void CityGen::sweepToBlocks()
 {
@@ -980,7 +1101,7 @@ void CityGen::sweepToBlocks()
         goToPoint = movePointInDirection(goToPoint, oppVector, distance);
         // addLineToVector(goToPoint,directionVector);
         
-        cout<<"\n\nDistance: "<<distance<<endl;
+        std::cout<<"\n\nDistance: "<<distance<<endl;
 
         // largestEdge = moveToPoint(largestEdge, centerPoint);
         largestEdge = makePerpendicularLine(largestEdge);
@@ -990,7 +1111,7 @@ void CityGen::sweepToBlocks()
         eval = evaluate(largestEdge, centerPoint);
         keepPositiveSide = eval > 0;
 
-        cout << "\n\nDebug: START" << endl;
+        std::cout << "\n\nDebug: START" << endl;
 
         #pragma endregion
         #pragma region Part2
@@ -1193,20 +1314,31 @@ void CityGen::buildVertexData() {
     200, 200, 200  // Light Gray (stands out against black)
     };  
 
-    float wallHeight = 40.0f;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> heightDist(30.0f, 100.0f); 
+    std::uniform_int_distribution<int> chanceDist(1, 30);
+    // float wallHeight = 40.0f;
     
     vector<Vertex> topVertices;
     for (size_t i = 0; i < m_buildings.size(); ++i) { //m_buildings.size()
         topVertices.clear();
         const vector<Point>& cell = m_buildings[i];
         
-        GLubyte r = colors[(i * 3) % colors.size()];
-        GLubyte g = colors[(i * 3 + 1) % colors.size()];
-        GLubyte b = colors[(i * 3 + 2) % colors.size()];
-        GLubyte a = 255;
+        float wallHeight = (chanceDist(gen) == 1) ? 120.0f : heightDist(gen);
+
         
-        float texWidth = 0.5f;  // Texture width in pixels
-        float texHeight = 0.5f; // Texture height in pixels
+        // GLubyte r = colors[(i * 3) % colors.size()];
+        // GLubyte g = colors[(i * 3 + 1) % colors.size()];
+        // GLubyte b = colors[(i * 3 + 2) % colors.size()];
+        
+        GLubyte r = colors[8];
+        GLubyte g = colors[8];
+        GLubyte b = colors[8];
+        GLubyte a = 255;
+
+        float texWidth = 10.0f; 
+        float texHeight = 10.0f;
         
         //WALL VERTS
         for (size_t j = 0; j < cell.size(); ++j) {
@@ -1214,13 +1346,13 @@ void CityGen::buildVertexData() {
             Point p2 = cell[(j + 1) % cell.size()];
             float width = distanceBetweenPoints(p1,p2);
 
-            float tileU = width / texWidth;      // How many times to tile horizontally
+            float tileU = width / texWidth;
             float tileV = wallHeight / texHeight;
 
-            tileU = 1.0f;
-            tileV = 1.0f;
+            // tileU = 1.0f;
+            // tileV = 1.0f;
 
-            Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a, 
+            Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a,
             0.0f,0.0f };
             Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a,
             tileU,0.0f };
@@ -1250,21 +1382,20 @@ void CityGen::buildVertexData() {
             // m_vertices.push_back(top2);
             
             // top1.y += 0.1f;
-            // topVertices.push_back(top1);
+            topVertices.push_back(top1);
         }
-        
-
+        if(topVertices.empty()){continue;}
         //ROOF - TOP VERTS
-        // for (size_t j = 1; j < topVertices.size() - 1; ++j) {
-        //     Vertex v1 = topVertices[0];
-        //     Vertex v2 = topVertices[j];
-        //     Vertex v3 = topVertices[j + 1];
-        //     // Add roof triangles
-        //     m_vertices.push_back(v1);
-        //     m_vertices.push_back(v3);
-        //     m_vertices.push_back(v2);
-        //     // m_vertices.push_back(v3);
-        // }
+        for (size_t j = 1; j < topVertices.size() - 1; ++j) {
+            Vertex v1 = topVertices[0];
+            Vertex v2 = topVertices[j];
+            Vertex v3 = topVertices[j + 1];
+            // Add roof triangles
+            m_vertices.push_back(v1);
+            m_vertices.push_back(v3);
+            m_vertices.push_back(v2);
+            // m_vertices.push_back(v3);
+        }
     }
     
     m_lines.clear();
@@ -1278,23 +1409,43 @@ void CityGen::buildVertexData() {
         for (size_t j = 0; j < cell.size(); ++j) {
             Point p1 = cell[j];
             Point p2 = cell[(j + 1) % cell.size()];
+            Vertex v1 = { static_cast<GLfloat>(p1.x), -20.0f, static_cast<GLfloat>(p1.y), r,g,b,a,0.0f,0.0f};
+            Vertex v2 = { static_cast<GLfloat>(p2.x), -20.0f, static_cast<GLfloat>(p2.y), r,g,b,a,0.0f,0.0f};
+            m_lines.push_back(v1);
+            m_lines.push_back(v2);
             
             addRoadDecals(p1,p2);
         }
     }
 
     if(Debug)
-    {
-        for (size_t j = 0; j < m_voronoiCells.size(); ++j) //debugs
+    {   
+        // for (size_t j = 0; j < m_voronoiCells.size(); ++j) //debugs
+        // {
+        //     if(m_voronoiCells[j].empty()) continue;
+        //     Point p1 = m_voronoiCells[j][0];
+        //     Point p2 = m_voronoiCells[j][1];
+        //     Vertex v1 = { static_cast<GLfloat>(p1.x), 10.0f, static_cast<GLfloat>(p1.y), 255, 0, 0, 255};
+        //     Vertex v2 = { static_cast<GLfloat>(p2.x), 10.0f, static_cast<GLfloat>(p2.y), 255, 0, 0, 255};
+        //     m_lines.push_back(v1);
+        //     m_lines.push_back(v2);
+        // }
+
+        /*
+       for (size_t i = 0; i < m_voronoiCells.size(); ++i) 
         {
-            if(m_voronoiCells[j].empty()) continue;
-            Point p1 = m_voronoiCells[j][0];
-            Point p2 = m_voronoiCells[j][1];
-            Vertex v1 = { static_cast<GLfloat>(p1.x), 10.0f, static_cast<GLfloat>(p1.y), 255, 0, 0, 255};
-            Vertex v2 = { static_cast<GLfloat>(p2.x), 10.0f, static_cast<GLfloat>(p2.y), 255, 0, 0, 255};
-            m_lines.push_back(v1);
-            m_lines.push_back(v2);
-        }
+            const vector<Point>& cell = m_voronoiCells[i];     
+            GLubyte r = 255;
+            GLubyte g = 255;
+            GLubyte b = 255;
+            GLubyte a = 255;
+            for (size_t j = 0; j < cell.size(); ++j) {
+                Point p1 = cell[j];
+                Point p2 = cell[(j + 1) % cell.size()];
+                addLineDebug1(p1,p2);
+                // addRoadDecals(p1,p2);
+            }
+        }*/
         // for (size_t j = 0; j < debugs1.size(); ++j)
         // {
         //     if(debugs1[j].empty()) continue;
@@ -1302,9 +1453,10 @@ void CityGen::buildVertexData() {
         //     Point p2 = debugs1[j][1];
         //     Vertex v1 = { static_cast<GLfloat>(p1.x), 20.0f, static_cast<GLfloat>(p1.y), 0, 0, 255, 255};
         //     Vertex v2 = { static_cast<GLfloat>(p2.x), 20.0f, static_cast<GLfloat>(p2.y), 0, 0, 255, 255};
-        //     m_lines.push_back(v1);
-        //     m_lines.push_back(v2);
+        //     // m_lines.push_back(v1);
+        //     // m_lines.push_back(v2);
         // }
+        /*
         for (size_t j = 0; j < debugs2.size(); ++j)
         {
             if(debugs2[j].empty()) continue;
@@ -1315,21 +1467,7 @@ void CityGen::buildVertexData() {
             m_lines.push_back(v1);
             m_lines.push_back(v2);
         }
-        for (size_t i = 0; i < m_voronoiCells.size(); ++i) 
-        {
-            const vector<Point>& cell = m_voronoiCells[i];     
-            GLubyte r = 255;
-            GLubyte g = 255;
-            GLubyte b = 255;
-            GLubyte a = 255;
-            for (size_t j = 0; j < cell.size(); ++j) {
-                Point p1 = cell[j];
-                Point p2 = cell[(j + 1) % cell.size()];
-                
-                addRoadDecals(p1,p2);
-            }
-        }
-
+        */
     }
 
 /*UV DEBUG
@@ -1403,7 +1541,7 @@ void CityGen::generate(GLuint program) {
     // {50,50}};
 
     computeVoronoiDiagram();
-    computeChunks();
+    // computeChunks();
     sweepToBlocks();
     buildVertexData();
 }
@@ -1447,6 +1585,9 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     if (timeLoc != -1) glUniformMatrix4fv(timeLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(m_timer)));
 
     textureID = loadTexture("data/HighRiseResidentialTemp.jpg");
+    
+    // textureID = wolf::TextureManager()
+    
     glBindTexture(GL_TEXTURE_2D, textureID);
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -1464,19 +1605,6 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     glBindVertexArray(m_vaoLines);
     glDrawArrays(GL_LINES, 0, m_numLines);
     glBindVertexArray(0);
-    
-    //--
-    
-    // glLineWidth(3.0f); // Set the line thickness to 3.0 (default is 1.0)
-    // glEnable(GL_LINE_SMOOTH);
-    // // glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    // // Bind VAO and draw lines
-    // glBindVertexArray(m_vao);
-    // // glDrawArrays(GL_LINES, 0, m_numVertices);
-    // // glDrawArrays(GL_LINE_SMOOTH, 0, m_lines);
-    // glDrawArrays(GL_TRIANGLES, 0, m_numVertices);
-    // glDrawArrays(GL_LINE_SMOOTH, 0, m_lines);
-    // glBindVertexArray(0);
     
     glUseProgram(0);
 }
