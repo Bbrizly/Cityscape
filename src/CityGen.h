@@ -1,7 +1,6 @@
 #pragma once
 #include "../wolf/wolf.h"
 #include "../samplefw/Sample.h"
-#include "Cube.h"
 #include "Vertex.h"
 #include <vector>
 #include <GL/glew.h>

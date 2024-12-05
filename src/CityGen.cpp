@@ -1,7 +1,4 @@
 #include "CityGen.h"
-#include "Building.h"
-#include "Road.h"
-#include "Cube.h"
 #include "Vertex.h"
 #include <vector>
 #include <random>
@@ -14,7 +11,6 @@
 #include <stb_image.h>
 using namespace std;
 using namespace glm;
-vector<Cube> cubes;
 #pragma region ALL
 #pragma region Mathematical shit
 bool findLineIntersection(const Line& l1, const Line& l2, Point& intersection) {
@@ -1312,7 +1308,7 @@ void CityGen::buildVertexData() {
     255, 140, 0,   // Vibrant Orange
     0, 200, 0,     // Bright Green (adjusted)
     200, 200, 200  // Light Gray (stands out against black)
-    };  
+    };
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -1409,10 +1405,10 @@ void CityGen::buildVertexData() {
         for (size_t j = 0; j < cell.size(); ++j) {
             Point p1 = cell[j];
             Point p2 = cell[(j + 1) % cell.size()];
-            Vertex v1 = { static_cast<GLfloat>(p1.x), -20.0f, static_cast<GLfloat>(p1.y), r,g,b,a,0.0f,0.0f};
-            Vertex v2 = { static_cast<GLfloat>(p2.x), -20.0f, static_cast<GLfloat>(p2.y), r,g,b,a,0.0f,0.0f};
-            m_lines.push_back(v1);
-            m_lines.push_back(v2);
+            // Vertex v1 = { static_cast<GLfloat>(p1.x), -20.0f, static_cast<GLfloat>(p1.y), r,g,b,a,0.0f,0.0f};
+            // Vertex v2 = { static_cast<GLfloat>(p2.x), -20.0f, static_cast<GLfloat>(p2.y), r,g,b,a,0.0f,0.0f};
+            // m_lines.push_back(v1);
+            // m_lines.push_back(v2);
             
             addRoadDecals(p1,p2);
         }
@@ -1561,7 +1557,6 @@ void CityGen::deGenerate() {
     debugs1.clear();
     debugs2.clear();
     m_sites.clear();
-    cubes.clear();
     m_voronoiCells.clear();
     m_buildings.clear();
 }
@@ -1585,6 +1580,7 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     if (timeLoc != -1) glUniformMatrix4fv(timeLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(m_timer)));
 
     textureID = loadTexture("data/HighRiseResidentialTemp.jpg");
+    // textureID = loadTexture("data/wall.png");
     
     // textureID = wolf::TextureManager()
     

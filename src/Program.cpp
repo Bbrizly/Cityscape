@@ -1,7 +1,5 @@
 #include "Program.h"
 #include "CityGen.h"
-// #include "Plane.h"
-#include "Cube.h"
 #include <vector>
 #include <random>
 using namespace std;

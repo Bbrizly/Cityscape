@@ -3,7 +3,6 @@
 #include "../samplefw/Sample.h"
 #include "../samplefw/OrbitCamera.h"
 #include "../samplefw/FirstPersonCamera.h"
-#include "Plane.h"
 
 class Program: public Sample
 {
