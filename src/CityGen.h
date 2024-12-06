@@ -17,6 +17,13 @@ struct Edge { Point start, end; };
 // CityGen Class Definition
 class CityGen {
 private:
+    wolf::Program* m_program;
+    wolf::Texture* m_buildingTexture;
+    // wolf::VertexBuffer* m_vertexBuffer;
+    // wolf::VertexBuffer* m_lineBuffer;
+    // wolf::VertexDeclaration m_vertexDecl;
+    // wolf::VertexDeclaration m_lineDecl;
+
     // Debugging vectors
     vector<vector<Point>> debugs;
     vector<vector<Point>> debugs1;
@@ -24,8 +31,8 @@ private:
 
     // OpenGL related variables
     GLuint otherShader;
-    GLuint m_program;
-    GLuint textureID;
+    // GLuint m_program;
+    // GLuint textureID;
     GLuint m_vao, m_vbo;
     GLuint m_vaoLines, m_vboLines;
     vector<Vertex> m_vertices;
@@ -112,4 +119,7 @@ public:
     void deGenerate();
     void reGenerate();
     void render(const mat4& proj, const mat4& view, float m_timer);
-};
+
+}
+
+;

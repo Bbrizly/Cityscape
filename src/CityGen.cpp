@@ -1223,42 +1223,7 @@ void CityGen::sweepToBlocks()
 #pragma endregion
 
 #pragma endregion
-GLuint CityGen::loadTexture(const std::string& filepath) {
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
 
-    // Load the image
-    int width, height, channels;
-    unsigned char* data = stbi_load(filepath.c_str(), &width, &height, &channels, 0);
-    if (!data) {
-        std::cerr << "Failed to load texture: " << filepath << std::endl;
-        return 0;
-    }
-
-    // Determine the image format
-    GLenum format = GL_RGB;
-    if (channels == 1) format = GL_RED;
-    else if (channels == 4) format = GL_RGBA;
-
-    // Upload texture data
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-
-    // Set texture parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // Generate mipmaps
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    // Free image data and unbind texture
-    stbi_image_free(data);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    return textureID;
-}
 #pragma region Render
 
 void CityGen::pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices)
@@ -1516,18 +1481,19 @@ void CityGen::buildVertexData() {
     glGenBuffers(1, &m_vboLines);
     pushVertexData(m_vaoLines,m_vboLines,m_lines);
 
-    // std::cout << "Vertex Data:" << std::endl;
-    // for (const auto& v : m_vertices) {
-    //     std::cout << "Position: (" << v.x << ", " << v.y << ", " << v.z << ")";
-    //     std::cout << " UV: (" << v.u << ", " << v.v << ")" << std::endl;
-    // }
-
     glBindVertexArray(0);
+
+    m_buildingTexture = wolf::TextureManager::CreateTexture("data/HighRiseResidentialTemp.tga");
+    m_buildingTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat,wolf::Texture::WrapMode::WM_Repeat);
+    m_buildingTexture->SetFilterMode(wolf::Texture::FilterMode::FM_LinearMipmap, wolf::Texture::FilterMode::FM_LinearMipmap);
+    // m_buildingTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Linear, wolf::Texture::FilterMode::FM_Linear);
+
     // */
     #pragma endregion
 }
 void CityGen::generate(GLuint program) {
-    m_program = program;
+    m_program = wolf::ProgramManager::CreateProgram("data/cube.vsh", "data/cube.fsh");
+    // m_program = program;
     
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
     m_sites = generateSites(numSites, seed);
@@ -1544,6 +1510,14 @@ void CityGen::generate(GLuint program) {
 
 void CityGen::deGenerate() {
     // Clean up OpenGL resources
+    if (m_program) {
+        wolf::ProgramManager::DestroyProgram(m_program);
+        m_program = nullptr;
+    }
+    if (m_buildingTexture) {
+        wolf::TextureManager::DestroyTexture(m_buildingTexture);
+        m_buildingTexture = nullptr;
+    }
     if (m_vbo) {
         glDeleteBuffers(1, &m_vbo);
         m_vbo = 0;
@@ -1562,46 +1536,39 @@ void CityGen::deGenerate() {
 }
 void CityGen::reGenerate() {
     deGenerate();
-    generate(m_program);
+    generate(0);
 }
 void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
+    if (!m_program || !m_buildingTexture) {
+        cerr << "Shader program or texture not initialized." << endl;
+        return;
+    }
+    m_program->Bind();
 
-    glUseProgram(m_program);
+    // Set uniform variables using Wolf's SetUniform
+    m_program->SetUniform("projection", proj);
+    m_program->SetUniform("view", view);
+    m_program->SetUniform("world", glm::mat4(1.0f)); // Assuming no world transformation
+    m_program->SetUniform("u_time", m_timer);
+    m_program->SetUniform("u_texture", 0); // Texture unit 0
 
-    // Set uniform variables
-    GLint projLoc = glGetUniformLocation(m_program, "projection");
-    GLint viewLoc = glGetUniformLocation(m_program, "view");
-    GLint worldLoc = glGetUniformLocation(m_program, "world");
-    GLint timeLoc = glGetUniformLocation(m_program, "u_time");
+    // Bind texture to texture unit 0
+    m_buildingTexture->Bind(0);
 
-    if (projLoc != -1) glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(proj));
-    if (viewLoc != -1) glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    if (worldLoc != -1) glUniformMatrix4fv(worldLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
-    if (timeLoc != -1) glUniformMatrix4fv(timeLoc, 1, GL_FALSE, glm::value_ptr(glm::mat4(m_timer)));
-
-    textureID = loadTexture("data/HighRiseResidentialTemp.jpg");
-    // textureID = loadTexture("data/wall.png");
-    
-    // textureID = wolf::TextureManager()
-    
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    
+    // Render buildings
     glBindVertexArray(m_vao);
     glDrawArrays(GL_TRIANGLES, 0, m_numVertices);
     glBindVertexArray(0);
 
-    // Render m_lines (dotted lines)
+    // Render roads (lines)
     glLineWidth(5.0f);
     glEnable(GL_LINE_SMOOTH);
     glBindVertexArray(m_vaoLines);
     glDrawArrays(GL_LINES, 0, m_numLines);
     glBindVertexArray(0);
-    
+
+    // Unbind the shader program
+    // m_program->Bind(0);
     glUseProgram(0);
 }
 

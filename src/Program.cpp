@@ -32,7 +32,8 @@ void Program::init()
         glDepthFunc(GL_LESS);
         
         // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
+        m_pProgram = wolf::ProgramManager::CreateProgram("data/floor.vsh", "data/floor.fsh");
+        
         // m_program = wolf::LoadShaders("data/planeAnimation.vsh", "data/planeAnimation.fsh");
         cubeShader = wolf::LoadShaders("data/cube.vsh", "data/cube.fsh");
         otherShader = wolf::LoadShaders("data/floor.vsh", "data/floor.fsh");
