@@ -16,5 +16,12 @@ void main()
     gl_Position = projection * view * world * vec4(a_position,1.0f);
 	v_color = a_color;
     v_uv1 = a_uv1;
+    // v_normal = vec4(a_normal,1.0f);
+    
+    mat3 normalMatrix = mat3(transpose(inverse(world)));
+    vec3 transformedNormal = normalize(normalMatrix * a_normal);
+    // v_normal = transformedNormal;
     v_normal = a_normal;
+
+    // v_normal = mat3(transpose(inverse(world))) * a_normal; // Correct normal transformation
 }

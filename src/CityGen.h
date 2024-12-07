@@ -20,10 +20,10 @@ private:
     wolf::Program* m_program;
     wolf::Texture* m_buildingTexture;
     
-    // wolf::VertexBuffer* m_vertexBuffer;
-    // wolf::VertexBuffer* m_lineBuffer;
-    // wolf::VertexDeclaration m_vertexDecl;
-    // wolf::VertexDeclaration m_lineDecl;
+    wolf::VertexBuffer* m_vertexBuffer;
+    wolf::VertexBuffer* m_lineBuffer;
+    wolf::VertexDeclaration* m_vertexDecl;
+    wolf::VertexDeclaration* m_lineDecl;
 
     // Debugging vectors
     vector<vector<Point>> debugs;
@@ -43,7 +43,7 @@ private:
     int m_numLines;
 
     // Voronoi diagram parameters
-    const int numSites = 40;
+    const int numSites = 25;
     float moveAmount = 25.0f;
     float maxMoveAmount = 30.0f;
     float minMoveAmount = 20.0f;
@@ -86,6 +86,8 @@ private:
     vector<Point> scalePolygon(const vector<Point>& polygon, float scaleFactor);
     float calculatePolygonArea(const vector<Point>& polygon);
     bool findSmallestEdgeAmount(vector<Point> polygon, float minEdgeLength);
+
+    glm::vec3 calculateQuadNormal(const Point& p1, const Point& p2);
 
     // Voronoi and chunk processing
     vector<Point> generateSites(int numSites, unsigned int seed);

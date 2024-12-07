@@ -1229,35 +1229,39 @@ void CityGen::sweepToBlocks()
 void CityGen::pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices)
 {
 
-    // m_vertexBuffer = wolf::BufferManager::CreateVertexBuffer(m_vertices.data(), m_vertices.size() * sizeof(Vertex)); //m_vertices, 
+    m_vertexBuffer = wolf::BufferManager::CreateVertexBuffer(m_vertices.data(), m_vertices.size() * sizeof(Vertex)); //m_vertices, 
+    m_vertexDecl = new wolf::VertexDeclaration();
+    m_vertexDecl->Begin();
+    m_vertexDecl->AppendAttribute(wolf::AT_Position, 3, wolf::CT_Float);  //xyz
+    m_vertexDecl->AppendAttribute(wolf::AT_Color, 4, wolf::CT_UByte);     //rgba
+    m_vertexDecl->AppendAttribute(wolf::AT_TexCoord1, 2, wolf::CT_Float); //uv
+    m_vertexDecl->AppendAttribute(wolf::AT_Normal, 3, wolf::CT_Float);    //n xyz
+    m_vertexDecl->SetVertexBuffer(m_vertexBuffer);
+    m_vertexDecl->End();
+    // glBindVertexArray(vao);
+    // glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    // glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));                      // Position
+    // glEnableVertexAttribArray(0);
+    // glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)offsetof(Vertex, r));
+    // glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
+    // glEnableVertexAttribArray(2);
+    // glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, nx));
+    // glEnableVertexAttribArray(3);
+    // glBindVertexArray(0);
+}
 
-    // m_vertexDecl = new wolf::VertexDeclaration();
-    // m_vertexDecl->Begin();
-    // m_vertexDecl->AppendAttribute(wolf::AT_Position, 3, wolf::CT_Float);  //xyz
-    // m_vertexDecl->AppendAttribute(wolf::AT_TexCoord1, 2, wolf::CT_Float); //uv
-    // m_vertexDecl->AppendAttribute(wolf::AT_Normal, 3, wolf::CT_Float);    //n xyz
-    // m_vertexDecl->AppendAttribute(wolf::AT_Color, 4, wolf::CT_UByte);     //rgba
-    // m_vertexDecl->SetVertexBuffer(m_vertexBuffer);
-    // m_vertexDecl->End();
+// NROAMLL CALCULATINGGG GRR
+glm::vec3 CityGen::calculateQuadNormal(const Point& p1, const Point& p2) {
+    Point temp = getDirectionVector(p1,p2);
 
-    glBindVertexArray(vao);
+    // vec3 ret(temp.x,0.0f,temp.y);
+    vec3 ret(temp.y,0.0f,-temp.x);
+    return ret;
+    // addDebug(p1);
+    // addDebug(p2);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));                      // Position
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)offsetof(Vertex, r));
-    glEnableVertexAttribArray(1);
-    
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
-    glEnableVertexAttribArray(2);
-
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, nx));
-    glEnableVertexAttribArray(3);
-    
-    glBindVertexArray(0);
 }
 
 void CityGen::buildVertexData() {
@@ -1294,6 +1298,8 @@ void CityGen::buildVertexData() {
     std::uniform_real_distribution<float> heightDist(30.0f, 100.0f); 
     std::uniform_int_distribution<int> chanceDist(1, 30);
     // float wallHeight = 40.0f;
+
+    vec3 topNormal = vec3(0.0f,1.0f,0.0f);
     
     vector<Vertex> topVertices;
     for (size_t i = 0; i < m_buildings.size(); ++i) { //m_buildings.size()
@@ -1302,7 +1308,6 @@ void CityGen::buildVertexData() {
         
         float wallHeight = (chanceDist(gen) == 1) ? 120.0f : heightDist(gen);
 
-        
         GLubyte r = colors[(i * 3) % colors.size()];
         GLubyte g = colors[(i * 3 + 1) % colors.size()];
         GLubyte b = colors[(i * 3 + 2) % colors.size()];
@@ -1311,6 +1316,7 @@ void CityGen::buildVertexData() {
 
         float texWidth = 10.0f; 
         float texHeight = 10.0f;
+
         
         //WALL VERTS
         for (size_t j = 0; j < cell.size(); ++j) {
@@ -1321,18 +1327,28 @@ void CityGen::buildVertexData() {
             float tileU = width / texWidth;
             float tileV = wallHeight / texHeight;
 
+            glm::vec3 normal = calculateQuadNormal(p1, p2);
+            // Point mid = findMidpoint(p1,p2);
+            // Point temp = {mid.x + normal.x *10, mid.y + normal.z * 10};
+            // addLineDebug1(mid,temp);
+
+
             // tileU = 1.0f;
             // tileV = 1.0f;
 
             Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a,
-            0.0f,0.0f };
+            0.0f,0.0f,
+            normal.x, normal.y, normal.z};
             Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a,
-            tileU,0.0f };
+            tileU,0.0f,
+            normal.x, normal.y, normal.z};
 
             Vertex top1 = { static_cast<GLfloat>(p1.x), wallHeight, static_cast<GLfloat>(p1.y), r, g, b, a,
-            0.0f,tileV };
+            0.0f,tileV,
+            normal.x, normal.y, normal.z};
             Vertex top2 = { static_cast<GLfloat>(p2.x), wallHeight, static_cast<GLfloat>(p2.y), r, g, b, a,
-            tileU,tileV};
+            tileU,tileV,
+            normal.x, normal.y, normal.z};
 
             // Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a, 
             // 0.0f,0.0f };
@@ -1342,6 +1358,12 @@ void CityGen::buildVertexData() {
             // 0.0f,1.0f };
             // Vertex top2 = { static_cast<GLfloat>(p2.x), wallHeight, static_cast<GLfloat>(p2.y), r, g, b, a,
             // 1.0f,1.0f };
+
+            // glm::vec3 normal = calculateQuadNormal(p1, p2, p2, wallHeight); // Adjust points as needed
+            // v1.nx = normal.x; v1.ny = normal.y; v1.nz = normal.z;
+            // v2.nx = normal.x; v2.ny = normal.y; v2.nz = normal.z;
+            // top1.nx = normal.x; top1.ny = normal.y; top1.nz = normal.z;
+            // top2.nx = normal.x; top2.ny = normal.y; top2.nz = normal.z;
 
             m_vertices.push_back(v1);
             m_vertices.push_back(top1);
@@ -1358,15 +1380,20 @@ void CityGen::buildVertexData() {
         }
         if(topVertices.empty()){continue;}
         //ROOF - TOP VERTS
+        for (size_t k = 0; k < topVertices.size(); ++k) {
+            topVertices[k].nx = topNormal.x;
+            topVertices[k].ny = topNormal.y;
+            topVertices[k].nz = topNormal.z;
+        }
         for (size_t j = 1; j < topVertices.size() - 1; ++j) {
             Vertex v1 = topVertices[0];
             Vertex v2 = topVertices[j];
             Vertex v3 = topVertices[j + 1];
             // Add roof triangles
             m_vertices.push_back(v1);
-            m_vertices.push_back(v3);
-            m_vertices.push_back(v2);
             // m_vertices.push_back(v3);
+            m_vertices.push_back(v2);
+            m_vertices.push_back(v3);
         }
     }
     
@@ -1386,7 +1413,7 @@ void CityGen::buildVertexData() {
             // m_lines.push_back(v1);
             // m_lines.push_back(v2);
             
-            addRoadDecals(p1,p2);
+            // addRoadDecals(p1,p2);
         }
     }
 // */
@@ -1419,28 +1446,26 @@ void CityGen::buildVertexData() {
                 // addRoadDecals(p1,p2);
             }
         }*/
-        // for (size_t j = 0; j < debugs1.size(); ++j)
-        // {
-        //     if(debugs1[j].empty()) continue;
-        //     Point p1 = debugs1[j][0];
-        //     Point p2 = debugs1[j][1];
-        //     Vertex v1 = { static_cast<GLfloat>(p1.x), 20.0f, static_cast<GLfloat>(p1.y), 0, 0, 255, 255};
-        //     Vertex v2 = { static_cast<GLfloat>(p2.x), 20.0f, static_cast<GLfloat>(p2.y), 0, 0, 255, 255};
-        //     // m_lines.push_back(v1);
-        //     // m_lines.push_back(v2);
-        // }
-        /*
+        for (size_t j = 0; j < debugs1.size(); ++j)
+        {
+            if(debugs1[j].empty()) continue;
+            Point p1 = debugs1[j][0];
+            Point p2 = debugs1[j][1];
+            Vertex v1 = { static_cast<GLfloat>(p1.x), -30.0f, static_cast<GLfloat>(p1.y), 255, 0, 0, 255};
+            Vertex v2 = { static_cast<GLfloat>(p2.x), -30.0f, static_cast<GLfloat>(p2.y), 255, 0, 0, 255};
+            m_lines.push_back(v1);
+            m_lines.push_back(v2);
+        }
         for (size_t j = 0; j < debugs2.size(); ++j)
         {
             if(debugs2[j].empty()) continue;
             Point p1 = debugs2[j][0];
             Point p2 = debugs2[j][1];
-            Vertex v1 = { static_cast<GLfloat>(p1.x), 30.0f, static_cast<GLfloat>(p1.y), 0, 255, 0, 255};
-            Vertex v2 = { static_cast<GLfloat>(p2.x), 30.0f, static_cast<GLfloat>(p2.y), 0, 255, 0, 255};
+            Vertex v1 = { static_cast<GLfloat>(p1.x), -30.0f, static_cast<GLfloat>(p1.y), 0, 255, 0, 255};
+            Vertex v2 = { static_cast<GLfloat>(p2.x), -30.0f, static_cast<GLfloat>(p2.y), 0, 255, 0, 255};
             m_lines.push_back(v1);
             m_lines.push_back(v2);
         }
-        */
     }
 
 /*UV DEBUG
@@ -1486,9 +1511,9 @@ void CityGen::buildVertexData() {
     m_numVertices = static_cast<int>(m_vertices.size());// * 5.0f); // sussyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
 
     // Create and bind VAO and VBO
-    glGenVertexArrays(1, &m_vao);
-    glGenBuffers(1, &m_vbo);
-    pushVertexData(m_vao,m_vbo,m_vertices);
+    // glGenVertexArrays(1, &m_vao);
+    // glGenBuffers(1, &m_vbo);
+    // pushVertexData(m_vao,m_vbo,m_vertices);
     
     //Debugging UV
     // GLint positionLoc = glGetAttribLocation(m_program, "a_position");
@@ -1580,13 +1605,23 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     m_program->SetUniform("u_time", m_timer);
     m_program->SetUniform("u_texture", 0); // Texture unit 0
 
+    glm::vec3 lightDir = glm::normalize(glm::vec3(0.3f, 1.0f, 0.2f)); // Example light direction
+    glm::vec3 lightColor(1.0f, 1.0f, 1.0f); // White light
+    glm::vec3 ambientColor(0.1f, 0.1f, 0.1f); // Low ambient light
+    // glm::vec3 ambientColor(0.5f, 0.5f, 0.5f); // Low ambient light
+
+    m_program->SetUniform("u_lightDir", lightDir);
+    m_program->SetUniform("u_lightColor", lightColor);
+    m_program->SetUniform("u_ambient", ambientColor);
+
     // Bind texture to texture unit 0
     m_buildingTexture->Bind(0);
 
     // Render buildings
-    glBindVertexArray(m_vao);
+    // glBindVertexArray(m_vao);
+    m_vertexDecl->Bind();
     glDrawArrays(GL_TRIANGLES, 0, m_numVertices);
-    glBindVertexArray(0);
+    // glBindVertexArray(0);
 
     // Render roads (lines)
     glLineWidth(5.0f);

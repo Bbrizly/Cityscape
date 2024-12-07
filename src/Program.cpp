@@ -21,13 +21,11 @@ void Program::init()
 {
     if(!cubeShader || !otherShader)
     {
-        glEnable(GL_DEPTH_TEST);
-        // // glEnable(GL_CULL_FACE);
-        // glDisable(GL_CULL_FACE);
-        glDepthFunc(GL_LESS);
 
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
+        // glEnable(GL_CULL_FACE);
+        // glCullFace(GL_BACK);
+        glDisable(GL_CULL_FACE);
+
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
         
