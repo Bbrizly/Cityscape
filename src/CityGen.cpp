@@ -1228,6 +1228,18 @@ void CityGen::sweepToBlocks()
 
 void CityGen::pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices)
 {
+
+    // m_vertexBuffer = wolf::BufferManager::CreateVertexBuffer(m_vertices.data(), m_vertices.size() * sizeof(Vertex)); //m_vertices, 
+
+    // m_vertexDecl = new wolf::VertexDeclaration();
+    // m_vertexDecl->Begin();
+    // m_vertexDecl->AppendAttribute(wolf::AT_Position, 3, wolf::CT_Float);  //xyz
+    // m_vertexDecl->AppendAttribute(wolf::AT_TexCoord1, 2, wolf::CT_Float); //uv
+    // m_vertexDecl->AppendAttribute(wolf::AT_Normal, 3, wolf::CT_Float);    //n xyz
+    // m_vertexDecl->AppendAttribute(wolf::AT_Color, 4, wolf::CT_UByte);     //rgba
+    // m_vertexDecl->SetVertexBuffer(m_vertexBuffer);
+    // m_vertexDecl->End();
+
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -1252,7 +1264,7 @@ void CityGen::buildVertexData() {
     // /*
     m_vertices.clear();
     // m_lines.clear();
-/*
+// /*
     for (size_t i = 0; i < m_buildings.size(); i++) {
         vector<Point> x = m_buildings[i];
     
@@ -1377,7 +1389,8 @@ void CityGen::buildVertexData() {
             addRoadDecals(p1,p2);
         }
     }
-*/
+// */
+
     if(Debug)
     {   
         // for (size_t j = 0; j < m_voronoiCells.size(); ++j) //debugs
@@ -1430,7 +1443,7 @@ void CityGen::buildVertexData() {
         */
     }
 
-// /*UV DEBUG
+/*UV DEBUG
 
     vec3 normal = vec3(-1.0f,0.0f,-1.0f);
 
@@ -1467,7 +1480,7 @@ void CityGen::buildVertexData() {
     std::cout << "Offset of u: " << offsetof(Vertex, u) << " bytes" << std::endl;
     std::cout << "Offset of nx: " << offsetof(Vertex, nx) << " bytes" << std::endl;
 
-// */
+*/
 
     #pragma region Vertex Prep
     m_numVertices = static_cast<int>(m_vertices.size());// * 5.0f); // sussyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy

@@ -19,6 +19,7 @@ class CityGen {
 private:
     wolf::Program* m_program;
     wolf::Texture* m_buildingTexture;
+    
     // wolf::VertexBuffer* m_vertexBuffer;
     // wolf::VertexBuffer* m_lineBuffer;
     // wolf::VertexDeclaration m_vertexDecl;

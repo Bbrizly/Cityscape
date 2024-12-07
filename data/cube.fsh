@@ -1,6 +1,6 @@
 
 in vec4 v_color;
-in vec2 v_uvcoord;
+in vec2 v_uv1;
 in vec3 v_normal;
 out vec4 PixelColor;
 
@@ -12,9 +12,9 @@ void main()
     //vec3 color = normalizedNormal * 0.5 + 0.5;
     //PixelColor = vec4(color, 1.0);
 
-    vec4 texColor = texture(u_texture, v_uvcoord);
+    vec4 texColor = texture(u_texture, v_uv1);
     PixelColor = texColor * v_color; 
     //PixelColor = v_color; 
 
-    //PixelColor = vec4(v_uvcoord, 0.0, 1.0); // Red = U, Green = V
+    //PixelColor = vec4(v_uv1, 0.0, 1.0); // Red = U, Green = V
 }
