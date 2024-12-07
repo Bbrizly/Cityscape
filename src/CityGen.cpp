@@ -1238,8 +1238,7 @@ void CityGen::pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));                      // Position
     glEnableVertexAttribArray(0);
 
-    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(GLfloat)));  // UVs
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, r));
+    glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)offsetof(Vertex, r));
     glEnableVertexAttribArray(1);
     
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
@@ -1250,7 +1249,7 @@ void CityGen::buildVertexData() {
     // /*
     m_vertices.clear();
     // m_lines.clear();
-    
+// /*
     for (size_t i = 0; i < m_buildings.size(); i++) {
         vector<Point> x = m_buildings[i];
     
@@ -1263,7 +1262,7 @@ void CityGen::buildVertexData() {
     }
     
     vector<GLubyte> colors = {
-    // 255, 0, 0,     // Bright Red
+    255, 0, 0,     // Bright Red
     0, 255, 0,     // Bright Green
     0, 0, 255,     // Bright Blue
     255, 255, 0,   // Bright Yellow
@@ -1289,13 +1288,10 @@ void CityGen::buildVertexData() {
         float wallHeight = (chanceDist(gen) == 1) ? 120.0f : heightDist(gen);
 
         
-        // GLubyte r = colors[(i * 3) % colors.size()];
-        // GLubyte g = colors[(i * 3 + 1) % colors.size()];
-        // GLubyte b = colors[(i * 3 + 2) % colors.size()];
+        GLubyte r = colors[(i * 3) % colors.size()];
+        GLubyte g = colors[(i * 3 + 1) % colors.size()];
+        GLubyte b = colors[(i * 3 + 2) % colors.size()];
         
-        GLubyte r = colors[8];
-        GLubyte g = colors[8];
-        GLubyte b = colors[8];
         GLubyte a = 255;
 
         float texWidth = 10.0f; 
@@ -1378,7 +1374,7 @@ void CityGen::buildVertexData() {
             addRoadDecals(p1,p2);
         }
     }
-
+// */
     if(Debug)
     {   
         // for (size_t j = 0; j < m_voronoiCells.size(); ++j) //debugs
@@ -1483,7 +1479,7 @@ void CityGen::buildVertexData() {
 
     glBindVertexArray(0);
 
-    m_buildingTexture = wolf::TextureManager::CreateTexture("data/HighRiseResidentialTemp.tga");
+    m_buildingTexture = wolf::TextureManager::CreateTexture("data/building1.tga");
     m_buildingTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat,wolf::Texture::WrapMode::WM_Repeat);
     m_buildingTexture->SetFilterMode(wolf::Texture::FilterMode::FM_LinearMipmap, wolf::Texture::FilterMode::FM_LinearMipmap);
     // m_buildingTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Linear, wolf::Texture::FilterMode::FM_Linear);
