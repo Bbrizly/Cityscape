@@ -1228,10 +1228,8 @@ void CityGen::sweepToBlocks()
 
 void CityGen::pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices)
 {
-    // glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    // glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
 
@@ -1249,7 +1247,7 @@ void CityGen::buildVertexData() {
     // /*
     m_vertices.clear();
     // m_lines.clear();
-// /*
+/*
     for (size_t i = 0; i < m_buildings.size(); i++) {
         vector<Point> x = m_buildings[i];
     
@@ -1374,7 +1372,7 @@ void CityGen::buildVertexData() {
             addRoadDecals(p1,p2);
         }
     }
-// */
+*/
     if(Debug)
     {   
         // for (size_t j = 0; j < m_voronoiCells.size(); ++j) //debugs
@@ -1427,18 +1425,18 @@ void CityGen::buildVertexData() {
         */
     }
 
-/*UV DEBUG
+// /*UV DEBUG
     Vertex x00 = { static_cast<GLfloat>(-20.0f), 20.0f, static_cast<GLfloat>(0.0f),
-    255, 255, 255, 255,
+    255, 0, 0, 255,
     0.0f,0.0f };
     Vertex x10 = { static_cast<GLfloat>(20.0f), 20.0f, static_cast<GLfloat>(0.0f),
-    255, 255, 255, 255,
+    255, 0, 0, 255,
     1.0f,0.0f };
     Vertex x01 = { static_cast<GLfloat>(-20.0f), 60.0f, static_cast<GLfloat>(0.0f),
-    255, 255, 255, 255,
+    255, 0, 0, 255,
     0.0f,1.0f };
     Vertex x11 = { static_cast<GLfloat>(20.0f), 60.0f, static_cast<GLfloat>(0.0f),
-    255, 255, 255, 255,
+    255, 0, 0, 255,
     1.0f,1.0f };
 
     m_vertices.push_back(x00);
@@ -1448,7 +1446,7 @@ void CityGen::buildVertexData() {
     m_vertices.push_back(x00);
     m_vertices.push_back(x11);
     m_vertices.push_back(x01);
-*/
+// */
 
     #pragma region Vertex Prep
     m_numVertices = static_cast<int>(m_vertices.size());// * 5.0f); // sussyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
@@ -1463,11 +1461,11 @@ void CityGen::buildVertexData() {
     // GLint texcoordLoc = glGetAttribLocation(m_program, "a_texcoord");
     // std::cout << "Position Attribute Location: " << positionLoc << std::endl;
     // std::cout << "Texcoord Attribute Location: " << texcoordLoc << std::endl;
-    // std::cout << "sizeof(Vertex): " << sizeof(Vertex) << std::endl;
-    // std::cout << "Offset of Position: " << offsetof(Vertex, x) << std::endl;
-    // std::cout << "Offset of UV: " << offsetof(Vertex, u) << std::endl;
-    // std::cout << "Buffer Data Size: " << m_vertices.size() * sizeof(Vertex) << " bytes" << std::endl;
-    // std::cout << "Stride: " << sizeof(Vertex) << " bytes" << std::endl;
+    std::cout << "sizeof(Vertex): " << sizeof(Vertex) << std::endl;
+    std::cout << "Offset of Position: " << offsetof(Vertex, x) << std::endl;
+    std::cout << "Offset of UV: " << offsetof(Vertex, u) << std::endl;
+    std::cout << "Buffer Data Size: " << m_vertices.size() * sizeof(Vertex) << " bytes" << std::endl;
+    std::cout << "Stride: " << sizeof(Vertex) << " bytes" << std::endl;
     //---
 
     // LINES - Unbind VAO
