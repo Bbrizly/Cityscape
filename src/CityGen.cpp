@@ -1241,6 +1241,11 @@ void CityGen::pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices)
     
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
     glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, nx));
+    glEnableVertexAttribArray(3);
+    
+    glBindVertexArray(0);
 }
 
 void CityGen::buildVertexData() {
@@ -1426,18 +1431,28 @@ void CityGen::buildVertexData() {
     }
 
 // /*UV DEBUG
+
+    vec3 normal = vec3(-1.0f,0.0f,-1.0f);
+
     Vertex x00 = { static_cast<GLfloat>(-20.0f), 20.0f, static_cast<GLfloat>(0.0f),
     255, 0, 0, 255,
-    0.0f,0.0f };
+    0.0f,0.0f
+    ,normal.x,normal.y,normal.z};
+
     Vertex x10 = { static_cast<GLfloat>(20.0f), 20.0f, static_cast<GLfloat>(0.0f),
     255, 0, 0, 255,
-    1.0f,0.0f };
+    1.0f,0.0f
+    ,normal.x,normal.y,normal.z};
+
     Vertex x01 = { static_cast<GLfloat>(-20.0f), 60.0f, static_cast<GLfloat>(0.0f),
     255, 0, 0, 255,
-    0.0f,1.0f };
+    0.0f,1.0f
+    ,normal.x,normal.y,normal.z};
+
     Vertex x11 = { static_cast<GLfloat>(20.0f), 60.0f, static_cast<GLfloat>(0.0f),
     255, 0, 0, 255,
-    1.0f,1.0f };
+    1.0f,1.0f
+    ,normal.x,normal.y,normal.z};
 
     m_vertices.push_back(x00);
     m_vertices.push_back(x10);
@@ -1446,6 +1461,12 @@ void CityGen::buildVertexData() {
     m_vertices.push_back(x00);
     m_vertices.push_back(x11);
     m_vertices.push_back(x01);
+
+    std::cout << "Size of Vertex: " << sizeof(Vertex) << " bytes" << std::endl;
+    std::cout << "Offset of r: " << offsetof(Vertex, r) << " bytes" << std::endl;
+    std::cout << "Offset of u: " << offsetof(Vertex, u) << " bytes" << std::endl;
+    std::cout << "Offset of nx: " << offsetof(Vertex, nx) << " bytes" << std::endl;
+
 // */
 
     #pragma region Vertex Prep
