@@ -5,7 +5,7 @@ uniform mat4 world;
 in vec3 a_position;
 in vec4 a_color;
 in vec2 a_uv1;
-in float a_layer; // New: layer index
+in float a_uv2; // New: layer index
 in vec3 a_normal;
 
 out vec4 v_color;
@@ -25,7 +25,7 @@ void main()
     // v_normal = transformedNormal;
     v_normal = a_normal;
     
-    v_layer = a_layer;
+    v_layer = a_uv2;
 
     // v_normal = mat3(transpose(inverse(world))) * a_normal; // Correct normal transformation
 }

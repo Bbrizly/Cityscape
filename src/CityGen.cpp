@@ -580,13 +580,14 @@ vector<Vertex> CityGen::fanTriangulatePolygon(const vector<Point>& polygon,
         // UV will be computed after we know min/max
         // Normal is known, but assign after:
         v.nx = normal.x; v.ny = normal.y; v.nz = normal.z;
-        v.layer = 3.0f;
 
         // Update bounding box
         if (p.x < minX) minX = p.x;
         if (p.x > maxX) maxX = p.x;
         if (p.y < minZ) minZ = p.y;
         if (p.y > maxZ) maxZ = p.y;
+
+        v.layer = 3;
 
         tempVerts.push_back(v);
     }
@@ -1078,7 +1079,7 @@ void CityGen::sweepToBlocks()
 
     for (size_t i = 0; i < m_chunks.size(); i++) {
         vector<Point> x = m_chunks[i];
-        m_chunks[i] = scalePolygon(x, 0.85f);
+        m_chunks[i] = scalePolygon(x, 0.8f);
         // m_blocks[i] = scalePolygon(x, 0.85f);
     }
     
@@ -1308,7 +1309,7 @@ wolf::Texture* CityGen::CreateArrayTextureFromFiles(const std::vector<std::strin
 
     // Load each texture image
     for(const auto& path : filePaths) {
-        printf("Attempting to load texture from path: %s\n", path.c_str());
+        // printf("Attempting to load texture from path: %s\n", path.c_str());
         unsigned char* data = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, 4); // Force RGBA
         if(!data) {
             printf("Error: Failed to load texture '%s'\n", path.c_str());
@@ -1637,7 +1638,7 @@ void CityGen::buildVertexData() {
     m_arrayTexture = CreateArrayTextureFromFiles({
         "data/building1.tga", //0- Wall
         "data/building2.tga", //1- Wall2 
-        "data/building3.tga",  //2- Roof
+        "data/building3.tga", //2- Roof
         "data/brickFloor.tga" //3- Sidewalk
 
         });
@@ -1718,8 +1719,73 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     m_program->SetUniform("projection", proj);
     m_program->SetUniform("view", view);
     m_program->SetUniform("world", glm::mat4(1.0f)); // Assuming no world transformation
-    m_program->SetUniform("u_time", m_timer);
     m_program->SetUniform("u_texture", 0); // Texture unit 0
+    m_arrayTexture->Bind(0);
+
+    // Day/night cycle logic:
+    float hours = fmod(m_timer,24.0f);
+    float normalizedTime = hours / 24.0f;
+
+    // Let's define the sun's position:
+    // We'll rotate around the X-axis. 
+    // At noon (12h), we want the sun at a high point: let's say angle=0 means highest point.
+    // We can offset by 6 hours so at 12h we have angle=0. At midnight (0h), angle=180 degrees.
+    float angle = (normalizedTime * 360.0f) - 180.0f; 
+    // At normalizedTime=0.5 (12h), angle=0
+    // At normalizedTime=0 (0h), angle=-180 degrees (sun below)
+    // Convert angle to radians
+    float rad = glm::radians(angle);
+
+    // Sun direction: start with a vector pointing "down" (0,1,0)
+    // Actually we consider that at angle=0 (noon), sun is high:
+    // Let’s choose y-axis as elevation. 
+    // When angle=0 => sun overhead: direction might be (0,1,0)
+    // Let’s rotate around Z axis or X axis:
+    // We'll say the sun moves in a vertical circle: 
+    // direction = (cos(rad), sin(rad), 0)
+    // At noon (rad=0), direction = (cos(0), sin(0),0) = (1,0,0)? That's horizontal.
+    // We want noon overhead: Let's shift the angle by +90 degrees to align:
+    // Add +90 deg: rad += 90 degrees
+    rad += glm::radians(90.0f);
+
+    glm::vec3 lightDir(cos(rad), sin(rad), 0.0f); 
+    // At noon: rad=90°, cos(90°)=0, sin(90°)=1 => direction=(0,1,0), straight down from top
+    // At midnight: rad=270°, direction=(0,-1,0) below horizon.
+
+    // Light intensity based on elevation:
+    // sin(rad) gives elevation. If sin(rad)<=0, sun below horizon.
+    float elevation = sin(rad); 
+    float dayFactor = glm::clamp(elevation,0.0f,1.0f); // 1 at noon, 0 at or below horizon
+    
+    // Ambient and diffuse change with sun elevation
+    // Ambient: darker at night, brighter at noon
+    float ambientStrength = 0.05f + 0.2f * dayFactor; 
+    glm::vec3 dynamicAmbient(ambientStrength);
+
+    // Light color also changes slightly
+    glm::vec3 dynamicLightColor = glm::mix(glm::vec3(0.5f,0.5f,0.7f), glm::vec3(1.0f,1.0f,0.9f), dayFactor);
+
+    m_program->SetUniform("u_time", m_timer);
+    m_program->SetUniform("u_lightDir", glm::normalize(lightDir));
+    m_program->SetUniform("u_lightColor", dynamicLightColor);
+    m_program->SetUniform("u_ambient", dynamicAmbient);
+
+    glm::vec3 dayColor = glm::vec3(0.5f, 0.7f, 1.0f);  // Bright blue (day)
+    glm::vec3 nightColor = glm::vec3(0.0f, 0.0f, 0.1f); // Dark blue (night)
+    glm::vec3 backgroundColor = glm::mix(nightColor, dayColor, dayFactor);
+    glClearColor(backgroundColor.r, backgroundColor.g, backgroundColor.b, 1.0f); // Set background color
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clear screen with new background color
+
+
+    // If night (dayFactor close to 0), consider lighting windows or turning on street lights:
+    // This can be done by passing another uniform like u_windowLitFactor that depends on dayFactor.
+    // For example:
+    float u_windowLitFactor = (1.0f - dayFactor); // More windows lit at night
+    // m_program->SetUniform("u_windowLitFactor", u_windowLitFactor);
+
+    /*
+    m_program->SetUniform("u_time", m_timer);
 
     // glm::vec3 lightDir = glm::normalize(glm::vec3(0.3f, 1.0f, 0.2f)); // Example light direction
 
@@ -1735,14 +1801,11 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     glm::vec3 dynamicLightColor = glm::mix(glm::vec3(0.5f,0.5f,0.7f), glm::vec3(1.0f,1.0f,0.9f), dayFactor);
 
     glm::vec3 lightDir = glm::normalize(glm::vec3(0.3f, 1.0f, 0.2f));
-
+    
     m_program->SetUniform("u_lightDir", lightDir);
     m_program->SetUniform("u_lightColor", dynamicLightColor);
     m_program->SetUniform("u_ambient", dynamicAmbient);
-
-    // Bind texture to texture unit 0
-    // m_buildingTexture->Bind(0);
-    m_arrayTexture->Bind(0);
+    */
 
     // Render buildings
     m_vertexDecl->Bind();

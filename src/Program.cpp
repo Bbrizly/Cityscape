@@ -56,10 +56,10 @@ void Program::update(float x)
 void Program::render(int width, int height)
 {
     // glClearColor(0.3f, 0.3f, 0.3f, 1.0);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    // glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     // glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     // glClearColor(255.0f, 255.0f, 255.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(cubeShader);
 
