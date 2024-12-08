@@ -39,7 +39,7 @@ private:
     int m_numLines;
 
     // Voronoi diagram parameters
-    const int numSites = 25;
+    const int numSites = 125;
     float moveAmount = 25.0f;
     float maxMoveAmount = 30.0f;
     float minMoveAmount = 20.0f;
@@ -47,10 +47,10 @@ private:
     float minEdge = 2.0f;
     float minEdge2 = 0.5f;
 
-    const double minX = -500.0;
-    const double maxX = 500.0;
-    const double minY = -400.0;
-    const double maxY = 400.0;
+    const double minX = -1500.0;
+    const double maxX = 1500.0;
+    const double minY = -1400.0;
+    const double maxY = 1400.0;
     const double epsilon = 1e-9;
 
     // Geometric and utility functions
@@ -84,6 +84,10 @@ private:
     bool findSmallestEdgeAmount(vector<Point> polygon, float minEdgeLength);
 
     glm::vec3 calculateQuadNormal(const Point& p1, const Point& p2);
+
+    vector<Vertex> fanTriangulatePolygon(const vector<Point>& polygon, 
+                                                   const vec3& normal,  float height,
+                                                   GLubyte r, GLubyte g, GLubyte b, GLubyte a);
 
     // Voronoi and chunk processing
     vector<Point> generateSites(int numSites, unsigned int seed);

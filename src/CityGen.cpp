@@ -371,7 +371,7 @@ pair<vector<Point>, vector<Point>> CityGen::clipPolygon(vector<Point> polygon, L
     vector<Point> polygonNegative;
     
     if (polygon.empty()) {
-        cout << "\nPolygon is empty.";
+        // cout << "\nPolygon is empty.";
         return {polygonPositive, polygonNegative};
     }
 
@@ -555,6 +555,117 @@ bool CityGen::findSmallestEdgeAmount(vector<Point> polygon, float minEdgeLength)
     return false; // Return false if fewer than two edges are below the minimum
 }
 
+vector<Vertex> CityGen::fanTriangulatePolygon(const vector<Point>& polygon, 
+                                                   const vec3& normal, float height,
+                                                   GLubyte r, GLubyte g, GLubyte b, GLubyte a)
+{
+    vector<Vertex> result;
+    if (polygon.size() < 3) return result;
+
+    // First pass: find min/max and create a vertex list
+    double minX = numeric_limits<double>::max();
+    double maxX = -numeric_limits<double>::max();
+    double minZ = numeric_limits<double>::max();
+    double maxZ = -numeric_limits<double>::max();
+
+    // Temporary storage for all vertices
+    vector<Vertex> tempVerts;
+    tempVerts.reserve(polygon.size());
+
+    for (const auto& p : polygon) {
+        Vertex v;
+        v.x = (GLfloat)p.x;
+        v.y = (GLfloat)height;    // ground level or roof level as needed
+        v.z = (GLfloat)p.y;
+        v.r = r; v.g = g; v.b = b; v.a = a;
+        // UV will be computed after we know min/max
+        // Normal is known, but assign after:
+        v.nx = normal.x; v.ny = normal.y; v.nz = normal.z;
+
+        // Update bounding box
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minZ) minZ = p.y;
+        if (p.y > maxZ) maxZ = p.y;
+
+        tempVerts.push_back(v);
+    }
+
+    // Compute UV for each vertex now that we have min/max
+    float uRange = (float)(maxX - minX);
+    float vRange = (float)(maxZ - minZ);
+    if (uRange < 1e-9f) uRange = 1.0f;
+    if (vRange < 1e-9f) vRange = 1.0f;
+
+    for (auto &vert : tempVerts) {
+        vert.u = (vert.x - (GLfloat)minX)/uRange;
+        vert.v = (vert.z - (GLfloat)minZ)/vRange;
+    }
+
+    // Fan triangulation: 
+    // The polygon is formed from a "fan" around tempVerts[0]
+    // Triangles: (v0, v(i), v(i+1)) for i in [1, polygon.size()-2]
+    for (size_t i = 1; i < polygon.size() - 1; i++) {
+        result.push_back(tempVerts[0]);
+        result.push_back(tempVerts[i+1]);
+        result.push_back(tempVerts[i]);
+        // result.push_back(tempVerts[i+1]);
+    }
+
+    return result;
+}
+
+
+/*vector<Vertex> CityGen::fanTriangulatePolygon(const vector<Point>& polygon, 
+                                                   vec3 normal, 
+                                                   GLubyte r, GLubyte g, GLubyte b, GLubyte a,
+                                                   float uvScale)
+{
+    std::vector<Vertex> result;
+    if (polygon.size() < 3) return result;
+
+    // Compute centroid for UV mapping reference
+    Point centroid = getCentroid(polygon);
+
+    // The first vertex is the fan apex
+    Vertex v0;
+    v0.x = (GLfloat)polygon[0].x;
+    v0.y = 0.0f;
+    v0.z = (GLfloat)polygon[0].y;
+    v0.r = r; v0.g = g; v0.b = b; v0.a = a;
+    // Derive UV from x,y and scale
+    v0.u = (v0.x - (float)centroid.x) * uvScale;
+    v0.v = (v0.z - (float)centroid.y) * uvScale;
+    v0.nx = normal.x; v0.ny = normal.y; v0.nz = normal.z;
+
+    // Fan triangulation: (v0, vi, vi+1)
+    for (size_t i = 1; i < polygon.size() - 1; i++) {
+        Vertex vi, vi1;
+
+        vi.x = (GLfloat)polygon[i].x;
+        vi.y = 0.0f;
+        vi.z = (GLfloat)polygon[i].y;
+        vi.r = r; vi.g = g; vi.b = b; vi.a = a;
+        vi.u = (vi.x - (float)centroid.x) * uvScale;
+        vi.v = (vi.z - (float)centroid.y) * uvScale;
+        vi.nx = normal.x; vi.ny = normal.y; vi.nz = normal.z;
+
+        vi1.x = (GLfloat)polygon[i+1].x;
+        vi1.y = 0.0f;
+        vi1.z = (GLfloat)polygon[i+1].y;
+        vi1.r = r; vi1.g = g; vi1.b = b; vi1.a = a;
+        vi1.u = (vi1.x - (float)centroid.x) * uvScale;
+        vi1.v = (vi1.z - (float)centroid.y) * uvScale;
+        vi1.nx = normal.x; vi1.ny = normal.y; vi1.nz = normal.z;
+
+        result.push_back(v0);
+        result.push_back(vi);
+        result.push_back(vi1);
+    }
+
+    return result;
+}
+*/
 #pragma endregion
 
 #pragma region Debugging
@@ -1097,7 +1208,7 @@ void CityGen::sweepToBlocks()
         goToPoint = movePointInDirection(goToPoint, oppVector, distance);
         // addLineToVector(goToPoint,directionVector);
         
-        std::cout<<"\n\nDistance: "<<distance<<endl;
+        // std::cout<<"\n\nDistance: "<<distance<<endl;
 
         // largestEdge = moveToPoint(largestEdge, centerPoint);
         largestEdge = makePerpendicularLine(largestEdge);
@@ -1107,7 +1218,7 @@ void CityGen::sweepToBlocks()
         eval = evaluate(largestEdge, centerPoint);
         keepPositiveSide = eval > 0;
 
-        std::cout << "\n\nDebug: START" << endl;
+        // std::cout << "\n\nDebug: START" << endl;
 
         #pragma endregion
         #pragma region Part2
@@ -1237,18 +1348,6 @@ void CityGen::pushVertexData(wolf::VertexBuffer*& vBuffer, wolf::VertexDeclarati
     vDecl->AppendAttribute(wolf::AT_Normal, 3, wolf::CT_Float);    //n xyz
     vDecl->SetVertexBuffer(vBuffer);
     vDecl->End();
-    // glBindVertexArray(vao);
-    // glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    // glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));                      // Position
-    // glEnableVertexAttribArray(0);
-    // glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Vertex), (void*)offsetof(Vertex, r));
-    // glEnableVertexAttribArray(1);
-    // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, u));
-    // glEnableVertexAttribArray(2);
-    // glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, nx));
-    // glEnableVertexAttribArray(3);
-    // glBindVertexArray(0);
 }
 
 glm::vec3 CityGen::calculateQuadNormal(const Point& p1, const Point& p2) {
@@ -1289,7 +1388,6 @@ void CityGen::buildVertexData() {
     std::mt19937 gen(rd());
     std::uniform_real_distribution<float> heightDist(30.0f, 100.0f); 
     std::uniform_int_distribution<int> chanceDist(1, 30);
-    // float wallHeight = 40.0f;
 
     vec3 topNormal = vec3(0.0f,1.0f,0.0f);
     
@@ -1370,22 +1468,10 @@ void CityGen::buildVertexData() {
             topVertices.push_back(top1);
         }
         if(topVertices.empty()){continue;}
-        //ROOF - TOP VERTS
-        for (size_t k = 0; k < topVertices.size(); ++k) {
-            topVertices[k].nx = topNormal.x;
-            topVertices[k].ny = topNormal.y;
-            topVertices[k].nz = topNormal.z;
-        }
-        for (size_t j = 1; j < topVertices.size() - 1; ++j) {
-            Vertex v1 = topVertices[0];
-            Vertex v2 = topVertices[j];
-            Vertex v3 = topVertices[j + 1];
-            // Add roof triangles
-            m_vertices.push_back(v1);
-            // m_vertices.push_back(v3);
-            m_vertices.push_back(v2);
-            m_vertices.push_back(v3);
-        }
+        
+        //crazy fucking hamburger
+        auto roofVerts = fanTriangulatePolygon(cell, topNormal, wallHeight, r, g, b, a);
+        m_vertices.insert(m_vertices.end(), roofVerts.begin(), roofVerts.end());
     }
     
     m_lines.clear();
@@ -1407,6 +1493,17 @@ void CityGen::buildVertexData() {
             addRoadDecals(p1,p2);
         }
     }
+    
+    //sidewalk and alleyway shit
+    for (auto &cell : m_voronoiCells) {
+        if (cell.size() < 3) continue;
+        // Create sidewalks around cell
+        vector<Point> sidewalkPoly = scalePolygon(cell, 0.87f);
+        GLubyte r=200,g=200,b=200,a=255;
+        auto sidewalkVerts = fanTriangulatePolygon(sidewalkPoly, vec3((0.0f,1.0f,0.0f)), 0.0f, r, g, b, a);
+        m_vertices.insert(m_vertices.end(), sidewalkVerts.begin(), sidewalkVerts.end());
+    }
+
 // */
 
     if(Debug)
@@ -1436,7 +1533,7 @@ void CityGen::buildVertexData() {
                 addLineDebug1(p1,p2);
                 // addRoadDecals(p1,p2);
             }
-        }*/
+        }
         for (size_t j = 0; j < debugs1.size(); ++j)
         {
             if(debugs1[j].empty()) continue;
@@ -1456,7 +1553,7 @@ void CityGen::buildVertexData() {
             Vertex v2 = { static_cast<GLfloat>(p2.x), -30.0f, static_cast<GLfloat>(p2.y), 0, 255, 0, 255};
             m_lines.push_back(v1);
             m_lines.push_back(v2);
-        }
+        }*/
     }
 
 /*UV DEBUG
@@ -1542,10 +1639,12 @@ void CityGen::deGenerate() {
         wolf::TextureManager::DestroyTexture(m_buildingTexture);
         m_buildingTexture = nullptr;
     }
-    
-	wolf::BufferManager::DestroyBuffer(m_lineBuffer);
-	wolf::BufferManager::DestroyBuffer(m_vertexBuffer);
-    
+    if(m_lineBuffer || m_vertexBuffer)
+    {
+        wolf::BufferManager::DestroyBuffer(m_lineBuffer);
+    	wolf::BufferManager::DestroyBuffer(m_vertexBuffer);
+    }
+
     m_vertices.clear();
     debugs.clear();
     debugs1.clear();
@@ -1560,7 +1659,7 @@ void CityGen::reGenerate() {
 }
 void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
     if (!m_program || !m_buildingTexture) {
-        cerr << "Shader program or texture not initialized." << endl;
+        // cerr << "Shader program or texture not initialized." << endl;
         return;
     }
     m_program->Bind();
