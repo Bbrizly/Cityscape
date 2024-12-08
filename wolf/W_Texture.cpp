@@ -94,6 +94,9 @@ Texture::Texture(void* pData, unsigned int width, unsigned int height, Format fm
 	SetFilterMode(FM_TrilinearMipmap, FM_Linear);
 }
 
+//----------------------------------------------------------
+// Constructor for render texture (2D only)
+//----------------------------------------------------------
 Texture::Texture(unsigned int width, unsigned int height, Format fmt)
 	: m_minFilter(Texture::FM_Invalid), m_magFilter(Texture::FM_Invalid),
 	  m_uWrap(Texture::WM_Invalid), m_vWrap(Texture::WM_Invalid),
@@ -106,6 +109,26 @@ Texture::Texture(unsigned int width, unsigned int height, Format fmt)
 
 	m_width = width;
 	m_height = height;
+}
+
+//----------------------------------------------------------
+// Constructor for Array Textures (2D Array)
+//----------------------------------------------------------
+Texture::Texture(void* pData, unsigned int width, unsigned int height, unsigned int layers, Format fmt)
+	: m_minFilter(FM_Invalid), m_magFilter(FM_Invalid),
+	  m_uWrap(WM_Invalid), m_vWrap(WM_Invalid),
+	  m_width(width), m_height(height), m_glTex(0), m_target(GL_TEXTURE_2D_ARRAY)
+{
+	glGenTextures(1, &m_glTex);
+	glBindTexture(m_target, m_glTex);
+
+	// Allocate storage for the array texture
+	glTexImage3D(m_target, 0, gs_aInternalFormatMap[fmt], width, height, layers, 0,
+				 gs_aFormatMap[fmt], gs_aTypeMap[fmt], pData);
+
+	SetWrapMode(WM_Clamp);
+	glGenerateMipmap(m_target);
+	SetFilterMode(FM_TrilinearMipmap, FM_Linear);
 }
 
 //----------------------------------------------------------

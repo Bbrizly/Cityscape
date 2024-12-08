@@ -19,6 +19,7 @@ class CityGen {
 private:
     wolf::Program* m_program;
     wolf::Texture* m_buildingTexture;
+    wolf::Texture* m_arrayTexture;
     
     wolf::VertexBuffer* m_vertexBuffer;
     wolf::VertexBuffer* m_lineBuffer;
@@ -88,6 +89,9 @@ private:
     vector<Vertex> fanTriangulatePolygon(const vector<Point>& polygon, 
                                                    const vec3& normal,  float height,
                                                    GLubyte r, GLubyte g, GLubyte b, GLubyte a);
+
+    wolf::Texture* CreateArrayTextureFromFiles(const std::vector<std::string>& filePaths);
+
 
     // Voronoi and chunk processing
     vector<Point> generateSites(int numSites, unsigned int seed);

@@ -580,6 +580,7 @@ vector<Vertex> CityGen::fanTriangulatePolygon(const vector<Point>& polygon,
         // UV will be computed after we know min/max
         // Normal is known, but assign after:
         v.nx = normal.x; v.ny = normal.y; v.nz = normal.z;
+        v.layer = 3.0f;
 
         // Update bounding box
         if (p.x < minX) minX = p.x;
@@ -690,9 +691,13 @@ void CityGen::drawCrosswalk(Point base, Point direction, float lineLength, float
         Point lineEnd = movePointInDirection(lineStart, direction, lineLength);
 
         Vertex v1 = { static_cast<GLfloat>(lineStart.x), lineHeight, static_cast<GLfloat>(lineStart.y), r, g, b, a,
-        0.0f,0.0f, 0.0f,1.0f,0.0f };
+        0.0f,0.0f,
+        0.0f,
+        0.0f,1.0f,0.0f };
         Vertex v2 = { static_cast<GLfloat>(lineEnd.x), lineHeight, static_cast<GLfloat>(lineEnd.y), r, g, b, a,
-        1.0f,1.0f, 0.0f,1.0f,0.0f };
+        1.0f,1.0f,
+        0.0f,
+        0.0f,1.0f,0.0f };
 
         m_lines.push_back(v1);
         m_lines.push_back(v2);
@@ -764,9 +769,13 @@ void CityGen::addRoadDecals(Point p1, Point p2) {
 
         // Add the solid segment as a pair of vertices
         Vertex v1 = { static_cast<GLfloat>(interpStart.x), lineHeight, static_cast<GLfloat>(interpStart.y), r, g, b, a,
-        0.0f,0.0f, 0.0f,1.0f,0.0f};
+        0.0f,0.0f,
+        0.0f, //layer
+        0.0f,1.0f,0.0f};
         Vertex v2 = { static_cast<GLfloat>(interpEnd.x), lineHeight, static_cast<GLfloat>(interpEnd.y), r, g, b, a,
-        1.0f,1.0f, 0.0f,1.0f,0.0f };
+        1.0f,1.0f,
+        0.0f,
+        0.0f,1.0f,0.0f };
 
         m_lines.push_back(v1);
         m_lines.push_back(v2);
@@ -1285,15 +1294,86 @@ void CityGen::sweepToBlocks()
 #pragma endregion
 
 #pragma region Render
+wolf::Texture* CityGen::CreateArrayTextureFromFiles(const std::vector<std::string>& filePaths)
+{
+    if(filePaths.empty()) {
+        printf("Error: No file paths provided for array texture creation.\n");
+        return nullptr;
+    }
+
+    // Variables to store texture dimensions and format
+    int texWidth, texHeight, texChannels;
+    std::vector<unsigned char*> imageDataList;
+    texWidth = texHeight = texChannels = 0;
+
+    // Load each texture image
+    for(const auto& path : filePaths) {
+        printf("Attempting to load texture from path: %s\n", path.c_str());
+        unsigned char* data = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, 4); // Force RGBA
+        if(!data) {
+            printf("Error: Failed to load texture '%s'\n", path.c_str());
+            // Free already loaded images
+            for(auto& imgData : imageDataList) {
+                stbi_image_free(imgData);
+            }
+            return nullptr;
+        }
+        imageDataList.push_back(data);
+    }
+
+    // Ensure all images have the same dimensions and format
+    for(size_t i = 1; i < imageDataList.size(); ++i) {
+        // stbi_load already forced RGBA, so texChannels should be 4
+        // Assuming all textures are loaded as RGBA
+        // If needed, add more validation here
+    }
+
+    // Calculate total size: width * height * channels * number of layers
+    size_t singleLayerSize = texWidth * texHeight * 4; // RGBA
+    size_t totalSize = singleLayerSize * imageDataList.size();
+    unsigned char* arrayData = new unsigned char[totalSize];
+
+    // Combine all layers into one buffer
+    for(size_t i = 0; i < imageDataList.size(); ++i) {
+        memcpy(arrayData + i * singleLayerSize, imageDataList[i], singleLayerSize);
+    }
+
+    // Create the array texture
+    wolf::Texture* arrayTexture = wolf::TextureManager::CreateArrayTexture(
+        arrayData, texWidth, texHeight, static_cast<unsigned int>(imageDataList.size()), wolf::Texture::FMT_8888
+    );
+
+    if(!arrayTexture) {
+        printf("Error: Failed to create array texture.\n");
+        delete[] arrayData;
+        for(auto& imgData : imageDataList) {
+            stbi_image_free(imgData);
+        }
+        return nullptr;
+    }
+
+    // Set texture parameters
+    arrayTexture->SetWrapMode(wolf::Texture::WM_Repeat, wolf::Texture::WM_Repeat);
+    arrayTexture->SetFilterMode(wolf::Texture::FM_TrilinearMipmap, wolf::Texture::FM_Linear);
+
+    // Clean up
+    delete[] arrayData;
+    for(auto& imgData : imageDataList) {
+        stbi_image_free(imgData);
+    }
+
+    return arrayTexture;
+}
 
 void CityGen::pushVertexData(wolf::VertexBuffer*& vBuffer, wolf::VertexDeclaration*& vDecl, vector<Vertex>& vertices)
-{
-    vBuffer = wolf::BufferManager::CreateVertexBuffer(vertices.data(), vertices.size() * sizeof(Vertex)); //m_vertices, 
+{   
+    vBuffer = wolf::BufferManager::CreateVertexBuffer(vertices.data(), vertices.size() * sizeof(Vertex));
     vDecl = new wolf::VertexDeclaration();
     vDecl->Begin();
     vDecl->AppendAttribute(wolf::AT_Position, 3, wolf::CT_Float);  //xyz
     vDecl->AppendAttribute(wolf::AT_Color, 4, wolf::CT_UByte);     //rgba
     vDecl->AppendAttribute(wolf::AT_TexCoord1, 2, wolf::CT_Float); //uv
+    vDecl->AppendAttribute(wolf::AT_TexCoord2, 1, wolf::CT_Float);  // layer index
     vDecl->AppendAttribute(wolf::AT_Normal, 3, wolf::CT_Float);    //n xyz
     vDecl->SetVertexBuffer(vBuffer);
     vDecl->End();
@@ -1369,23 +1449,25 @@ void CityGen::buildVertexData() {
             // Point mid = findMidpoint(p1,p2);
             // Point temp = {mid.x + normal.x *10, mid.y + normal.z * 10};
             // addLineDebug1(mid,temp);
-
-
             // tileU = 1.0f;
             // tileV = 1.0f;
 
             Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a,
             0.0f,0.0f,
+            0.0f,
             normal.x, normal.y, normal.z};
             Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a,
             tileU,0.0f,
-            normal.x, normal.y, normal.z};
+            0.0f,
+            normal.x, normal.y, normal.z,};
 
             Vertex top1 = { static_cast<GLfloat>(p1.x), wallHeight, static_cast<GLfloat>(p1.y), r, g, b, a,
             0.0f,tileV,
+            0.0f,
             normal.x, normal.y, normal.z};
             Vertex top2 = { static_cast<GLfloat>(p2.x), wallHeight, static_cast<GLfloat>(p2.y), r, g, b, a,
             tileU,tileV,
+            0.0f,
             normal.x, normal.y, normal.z};
 
             // Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a, 
@@ -1551,11 +1633,26 @@ void CityGen::buildVertexData() {
     m_numLines = static_cast<int>(m_lines.size());
     pushVertexData(m_lineBuffer,m_lineDecl,m_lines);
 
-    // glBindVertexArray(0);
+        //ARRAY TEXTUREEE
+    m_arrayTexture = CreateArrayTextureFromFiles({
+        "data/building1.tga", //0- Wall
+        "data/building2.tga", //1- Wall2 
+        "data/building3.tga",  //2- Roof
+        "data/brickFloor.tga" //3- Sidewalk
 
-    m_buildingTexture = wolf::TextureManager::CreateTexture("data/building1.tga");
-    m_buildingTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat,wolf::Texture::WrapMode::WM_Repeat);
-    m_buildingTexture->SetFilterMode(wolf::Texture::FilterMode::FM_LinearMipmap, wolf::Texture::FilterMode::FM_LinearMipmap);
+        });
+
+    if(!m_arrayTexture) {
+        printf("Error: Array texture creation failed.\n");
+        return;
+    }
+    // arrayData, texWidth1, texHeight1, 3, wolf::Texture::FMT_8888);
+    // m_arrayTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat,wolf::Texture::WrapMode::WM_Repeat);
+    // m_arrayTexture->SetFilterMode(wolf::Texture::FilterMode::FM_LinearMipmap, wolf::Texture::FilterMode::FM_LinearMipmap);
+    
+    // m_buildingTexture = wolf::TextureManager::CreateTexture("data/building1.tga");
+    // m_buildingTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat,wolf::Texture::WrapMode::WM_Repeat);
+    // m_buildingTexture->SetFilterMode(wolf::Texture::FilterMode::FM_LinearMipmap, wolf::Texture::FilterMode::FM_LinearMipmap);
     // m_buildingTexture->SetFilterMode(wolf::Texture::FilterMode::FM_Linear, wolf::Texture::FilterMode::FM_Linear);
 
     // */
@@ -1587,6 +1684,10 @@ void CityGen::deGenerate() {
         wolf::TextureManager::DestroyTexture(m_buildingTexture);
         m_buildingTexture = nullptr;
     }
+    if (m_arrayTexture) { // Changed from m_buildingTexture to m_arrayTexture
+        wolf::TextureManager::DestroyTexture(m_arrayTexture);
+        m_arrayTexture = nullptr;
+    }
     if(m_lineBuffer || m_vertexBuffer)
     {
         wolf::BufferManager::DestroyBuffer(m_lineBuffer);
@@ -1606,7 +1707,8 @@ void CityGen::reGenerate() {
     generate(0);
 }
 void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer) {
-    if (!m_program || !m_buildingTexture) {
+    if (!m_program || !m_arrayTexture)// !m_buildingTexture)
+    {
         // cerr << "Shader program or texture not initialized." << endl;
         return;
     }
@@ -1639,7 +1741,8 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     m_program->SetUniform("u_ambient", dynamicAmbient);
 
     // Bind texture to texture unit 0
-    m_buildingTexture->Bind(0);
+    // m_buildingTexture->Bind(0);
+    m_arrayTexture->Bind(0);
 
     // Render buildings
     m_vertexDecl->Bind();

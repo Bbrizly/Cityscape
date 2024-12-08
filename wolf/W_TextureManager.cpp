@@ -39,6 +39,9 @@ Texture* TextureManager::CreateTexture(void* pData, unsigned int width, unsigned
 {
 	return new Texture(pData, width, height, fmt);
 }
+Texture* TextureManager::CreateArrayTexture(void* pData, unsigned int width, unsigned int height,unsigned int layers, Texture::Format fmt){
+	return new Texture(pData, width, height, layers, fmt);
+}
 
 Texture* TextureManager::CreateRenderTexture(unsigned int width, unsigned int height, Texture::Format fmt) 
 {

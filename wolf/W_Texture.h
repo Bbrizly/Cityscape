@@ -76,6 +76,10 @@ class Texture
 		Texture(const std::string& path);
 		Texture(void* pData, unsigned int width, unsigned int height, Format fmt);
 		Texture(unsigned int width, unsigned int height, Format fmt);
+
+		//2d array constructor
+		Texture(void* pData, unsigned int width, unsigned int height, unsigned int layers, Format fmt);
+
 		virtual ~Texture();
 
 		void LoadFromDDS(const std::string& path);
@@ -92,6 +96,9 @@ class Texture
 		FilterMode		m_magFilter;
 		unsigned int	m_width;
 		unsigned int    m_height;
+
+        // 2D texture or array Texturee
+        GLenum         m_target = GL_TEXTURE_2D;
 		//-------------------------------------------------------------------------
 };
 

@@ -24,6 +24,7 @@ class TextureManager
 		//-------------------------------------------------------------------------
 		static Texture* CreateTexture(const std::string& path);
 		static Texture* CreateTexture(void* pData, unsigned int width, unsigned int height, Texture::Format fmt);
+		static Texture* CreateArrayTexture(void* pData, unsigned int width, unsigned int height, unsigned int layers, Texture::Format fmt);
 		static Texture* CreateRenderTexture(unsigned int width, unsigned int height, Texture::Format fmt);
 		static void DestroyTexture(Texture* pTex);
 
