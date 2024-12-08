@@ -630,9 +630,9 @@ void CityGen::drawCrosswalk(Point base, Point direction, float lineLength, float
         Point lineEnd = movePointInDirection(lineStart, direction, lineLength);
 
         Vertex v1 = { static_cast<GLfloat>(lineStart.x), lineHeight, static_cast<GLfloat>(lineStart.y), r, g, b, a,
-        0.0f,0.0f };
+        0.0f,0.0f, 0.0f,1.0f,0.0f };
         Vertex v2 = { static_cast<GLfloat>(lineEnd.x), lineHeight, static_cast<GLfloat>(lineEnd.y), r, g, b, a,
-        1.0f,1.0f };
+        1.0f,1.0f, 0.0f,1.0f,0.0f };
 
         m_lines.push_back(v1);
         m_lines.push_back(v2);
@@ -704,9 +704,9 @@ void CityGen::addRoadDecals(Point p1, Point p2) {
 
         // Add the solid segment as a pair of vertices
         Vertex v1 = { static_cast<GLfloat>(interpStart.x), lineHeight, static_cast<GLfloat>(interpStart.y), r, g, b, a,
-        0.0f,0.0f };
+        0.0f,0.0f, 0.0f,1.0f,0.0f};
         Vertex v2 = { static_cast<GLfloat>(interpEnd.x), lineHeight, static_cast<GLfloat>(interpEnd.y), r, g, b, a,
-        1.0f,1.0f };
+        1.0f,1.0f, 0.0f,1.0f,0.0f };
 
         m_lines.push_back(v1);
         m_lines.push_back(v2);
@@ -1226,18 +1226,17 @@ void CityGen::sweepToBlocks()
 
 #pragma region Render
 
-void CityGen::pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices)
+void CityGen::pushVertexData(wolf::VertexBuffer*& vBuffer, wolf::VertexDeclaration*& vDecl, vector<Vertex>& vertices)
 {
-
-    m_vertexBuffer = wolf::BufferManager::CreateVertexBuffer(m_vertices.data(), m_vertices.size() * sizeof(Vertex)); //m_vertices, 
-    m_vertexDecl = new wolf::VertexDeclaration();
-    m_vertexDecl->Begin();
-    m_vertexDecl->AppendAttribute(wolf::AT_Position, 3, wolf::CT_Float);  //xyz
-    m_vertexDecl->AppendAttribute(wolf::AT_Color, 4, wolf::CT_UByte);     //rgba
-    m_vertexDecl->AppendAttribute(wolf::AT_TexCoord1, 2, wolf::CT_Float); //uv
-    m_vertexDecl->AppendAttribute(wolf::AT_Normal, 3, wolf::CT_Float);    //n xyz
-    m_vertexDecl->SetVertexBuffer(m_vertexBuffer);
-    m_vertexDecl->End();
+    vBuffer = wolf::BufferManager::CreateVertexBuffer(vertices.data(), vertices.size() * sizeof(Vertex)); //m_vertices, 
+    vDecl = new wolf::VertexDeclaration();
+    vDecl->Begin();
+    vDecl->AppendAttribute(wolf::AT_Position, 3, wolf::CT_Float);  //xyz
+    vDecl->AppendAttribute(wolf::AT_Color, 4, wolf::CT_UByte);     //rgba
+    vDecl->AppendAttribute(wolf::AT_TexCoord1, 2, wolf::CT_Float); //uv
+    vDecl->AppendAttribute(wolf::AT_Normal, 3, wolf::CT_Float);    //n xyz
+    vDecl->SetVertexBuffer(vBuffer);
+    vDecl->End();
     // glBindVertexArray(vao);
     // glBindBuffer(GL_ARRAY_BUFFER, vbo);
     // glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
@@ -1252,16 +1251,9 @@ void CityGen::pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices)
     // glBindVertexArray(0);
 }
 
-// NROAMLL CALCULATINGGG GRR
 glm::vec3 CityGen::calculateQuadNormal(const Point& p1, const Point& p2) {
     Point temp = getDirectionVector(p1,p2);
-
-    // vec3 ret(temp.x,0.0f,temp.y);
-    vec3 ret(temp.y,0.0f,-temp.x);
-    return ret;
-    // addDebug(p1);
-    // addDebug(p2);
-
+    return vec3(temp.y,0.0f,-temp.x);
 }
 
 void CityGen::buildVertexData() {
@@ -1316,7 +1308,6 @@ void CityGen::buildVertexData() {
 
         float texWidth = 10.0f; 
         float texHeight = 10.0f;
-
         
         //WALL VERTS
         for (size_t j = 0; j < cell.size(); ++j) {
@@ -1413,7 +1404,7 @@ void CityGen::buildVertexData() {
             // m_lines.push_back(v1);
             // m_lines.push_back(v2);
             
-            // addRoadDecals(p1,p2);
+            addRoadDecals(p1,p2);
         }
     }
 // */
@@ -1509,32 +1500,12 @@ void CityGen::buildVertexData() {
 
     #pragma region Vertex Prep
     m_numVertices = static_cast<int>(m_vertices.size());// * 5.0f); // sussyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
-
-    // Create and bind VAO and VBO
-    // glGenVertexArrays(1, &m_vao);
-    // glGenBuffers(1, &m_vbo);
-    // pushVertexData(m_vao,m_vbo,m_vertices);
+    pushVertexData(m_vertexBuffer,m_vertexDecl,m_vertices);
     
-    //Debugging UV
-    // GLint positionLoc = glGetAttribLocation(m_program, "a_position");
-    // GLint texcoordLoc = glGetAttribLocation(m_program, "a_texcoord");
-    // std::cout << "Position Attribute Location: " << positionLoc << std::endl;
-    // std::cout << "Texcoord Attribute Location: " << texcoordLoc << std::endl;
-    std::cout << "sizeof(Vertex): " << sizeof(Vertex) << std::endl;
-    std::cout << "Offset of Position: " << offsetof(Vertex, x) << std::endl;
-    std::cout << "Offset of UV: " << offsetof(Vertex, u) << std::endl;
-    std::cout << "Buffer Data Size: " << m_vertices.size() * sizeof(Vertex) << " bytes" << std::endl;
-    std::cout << "Stride: " << sizeof(Vertex) << " bytes" << std::endl;
-    //---
-
-    // LINES - Unbind VAO
-    glBindVertexArray(0);
     m_numLines = static_cast<int>(m_lines.size());
-    glGenVertexArrays(1, &m_vaoLines);
-    glGenBuffers(1, &m_vboLines);
-    pushVertexData(m_vaoLines,m_vboLines,m_lines);
+    pushVertexData(m_lineBuffer,m_lineDecl,m_lines);
 
-    glBindVertexArray(0);
+    // glBindVertexArray(0);
 
     m_buildingTexture = wolf::TextureManager::CreateTexture("data/building1.tga");
     m_buildingTexture->SetWrapMode(wolf::Texture::WrapMode::WM_Repeat,wolf::Texture::WrapMode::WM_Repeat);
@@ -1571,14 +1542,10 @@ void CityGen::deGenerate() {
         wolf::TextureManager::DestroyTexture(m_buildingTexture);
         m_buildingTexture = nullptr;
     }
-    if (m_vbo) {
-        glDeleteBuffers(1, &m_vbo);
-        m_vbo = 0;
-    }
-    if (m_vao) {
-        glDeleteVertexArrays(1, &m_vao);
-        m_vao = 0;
-    }
+    
+	wolf::BufferManager::DestroyBuffer(m_lineBuffer);
+	wolf::BufferManager::DestroyBuffer(m_vertexBuffer);
+    
     m_vertices.clear();
     debugs.clear();
     debugs1.clear();
@@ -1607,7 +1574,7 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
 
     glm::vec3 lightDir = glm::normalize(glm::vec3(0.3f, 1.0f, 0.2f)); // Example light direction
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f); // White light
-    glm::vec3 ambientColor(0.1f, 0.1f, 0.1f); // Low ambient light
+    glm::vec3 ambientColor(0.2f, 0.2f, 0.2f); // Low ambient light
     // glm::vec3 ambientColor(0.5f, 0.5f, 0.5f); // Low ambient light
 
     m_program->SetUniform("u_lightDir", lightDir);
@@ -1618,15 +1585,10 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     m_buildingTexture->Bind(0);
 
     // Render buildings
-    // glBindVertexArray(m_vao);
     m_vertexDecl->Bind();
     glDrawArrays(GL_TRIANGLES, 0, m_numVertices);
-    // glBindVertexArray(0);
 
-    // Render roads (lines)
-    glLineWidth(5.0f);
-    glEnable(GL_LINE_SMOOTH);
-    glBindVertexArray(m_vaoLines);
+    m_lineDecl->Bind();
     glDrawArrays(GL_LINES, 0, m_numLines);
     glBindVertexArray(0);
 

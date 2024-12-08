@@ -32,10 +32,6 @@ private:
 
     // OpenGL related variables
     GLuint otherShader;
-    // GLuint m_program;
-    // GLuint textureID;
-    GLuint m_vao, m_vbo;
-    GLuint m_vaoLines, m_vboLines;
     vector<Vertex> m_vertices;
     vector<Vertex> m_lines;
     bool Debug = true;//false;
@@ -105,7 +101,7 @@ private:
     void addLineToVector1(Point p1, Point vector);
 
     // Data structures for Voronoi and building generation
-    void pushVertexData(GLuint vao, GLuint vbo, vector<Vertex> vertices);
+    void pushVertexData(wolf::VertexBuffer*& vBuffer, wolf::VertexDeclaration*& vDecl, vector<Vertex>& vertices);
     vector<Point> m_sites;
     vector<vector<Point>> m_voronoiCells;
     vector<vector<Point>> m_chunks;

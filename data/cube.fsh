@@ -17,18 +17,7 @@ void main()
 {
     
     vec3 N = normalize(v_normal);
-    //N = vec3(0.0f,1.0f,0.0f);
-
-    vec3 L = normalize(u_lightDir); // Invert the light direction here
-    float diff = max(dot(N, L), 0.0);
-
-    PixelColor = vec4(N * 0.5 + 0.5, 1.0);
-
-    //PixelColor = vec4(diff, diff, diff, 1.0);
-
-    /*
-    vec3 N = normalize(-v_normal);
-    vec3 L = normalize(-u_lightDir);
+    vec3 L = normalize(u_lightDir);
 
     float diff = max(dot(N, L), 0.0);
 
@@ -36,10 +25,6 @@ void main()
 
     vec3 lighting = u_ambient + (u_lightColor * diff);
 
-    // Final color:
-    // - Multiply texture and vertex color for the base color
-    // - Then modulate by the computed lighting
-    // - Combine alpha from both texture and vertex color
     PixelColor = vec4(texColor.rgb * v_color.rgb * lighting, texColor.a * v_color.a);
-    */
+    
 }
