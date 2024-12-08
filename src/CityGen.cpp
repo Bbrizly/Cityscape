@@ -554,7 +554,6 @@ bool CityGen::findSmallestEdgeAmount(vector<Point> polygon, float minEdgeLength)
 
     return false; // Return false if fewer than two edges are below the minimum
 }
-
 vector<Vertex> CityGen::fanTriangulatePolygon(const vector<Point>& polygon, 
                                                    const vec3& normal, float height,
                                                    GLubyte r, GLubyte g, GLubyte b, GLubyte a)
@@ -616,56 +615,6 @@ vector<Vertex> CityGen::fanTriangulatePolygon(const vector<Point>& polygon,
 }
 
 
-/*vector<Vertex> CityGen::fanTriangulatePolygon(const vector<Point>& polygon, 
-                                                   vec3 normal, 
-                                                   GLubyte r, GLubyte g, GLubyte b, GLubyte a,
-                                                   float uvScale)
-{
-    std::vector<Vertex> result;
-    if (polygon.size() < 3) return result;
-
-    // Compute centroid for UV mapping reference
-    Point centroid = getCentroid(polygon);
-
-    // The first vertex is the fan apex
-    Vertex v0;
-    v0.x = (GLfloat)polygon[0].x;
-    v0.y = 0.0f;
-    v0.z = (GLfloat)polygon[0].y;
-    v0.r = r; v0.g = g; v0.b = b; v0.a = a;
-    // Derive UV from x,y and scale
-    v0.u = (v0.x - (float)centroid.x) * uvScale;
-    v0.v = (v0.z - (float)centroid.y) * uvScale;
-    v0.nx = normal.x; v0.ny = normal.y; v0.nz = normal.z;
-
-    // Fan triangulation: (v0, vi, vi+1)
-    for (size_t i = 1; i < polygon.size() - 1; i++) {
-        Vertex vi, vi1;
-
-        vi.x = (GLfloat)polygon[i].x;
-        vi.y = 0.0f;
-        vi.z = (GLfloat)polygon[i].y;
-        vi.r = r; vi.g = g; vi.b = b; vi.a = a;
-        vi.u = (vi.x - (float)centroid.x) * uvScale;
-        vi.v = (vi.z - (float)centroid.y) * uvScale;
-        vi.nx = normal.x; vi.ny = normal.y; vi.nz = normal.z;
-
-        vi1.x = (GLfloat)polygon[i+1].x;
-        vi1.y = 0.0f;
-        vi1.z = (GLfloat)polygon[i+1].y;
-        vi1.r = r; vi1.g = g; vi1.b = b; vi1.a = a;
-        vi1.u = (vi1.x - (float)centroid.x) * uvScale;
-        vi1.v = (vi1.z - (float)centroid.y) * uvScale;
-        vi1.nx = normal.x; vi1.ny = normal.y; vi1.nz = normal.z;
-
-        result.push_back(v0);
-        result.push_back(vi);
-        result.push_back(vi1);
-    }
-
-    return result;
-}
-*/
 #pragma endregion
 
 #pragma region Debugging
@@ -1615,7 +1564,7 @@ void CityGen::buildVertexData() {
 void CityGen::generate(GLuint program) {
     m_program = wolf::ProgramManager::CreateProgram("data/cube.vsh", "data/cube.fsh");
     // m_program = program;
-    
+
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
     m_sites = generateSites(numSites, seed);
     
@@ -1628,7 +1577,6 @@ void CityGen::generate(GLuint program) {
     sweepToBlocks();
     buildVertexData();
 }
-
 void CityGen::deGenerate() {
     // Clean up OpenGL resources
     if (m_program) {
@@ -1671,14 +1619,24 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     m_program->SetUniform("u_time", m_timer);
     m_program->SetUniform("u_texture", 0); // Texture unit 0
 
-    glm::vec3 lightDir = glm::normalize(glm::vec3(0.3f, 1.0f, 0.2f)); // Example light direction
+    // glm::vec3 lightDir = glm::normalize(glm::vec3(0.3f, 1.0f, 0.2f)); // Example light direction
+
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f); // White light
     glm::vec3 ambientColor(0.2f, 0.2f, 0.2f); // Low ambient light
+
     // glm::vec3 ambientColor(0.5f, 0.5f, 0.5f); // Low ambient light
 
+    float normalizedTime = fmod(m_timer,24.0f)/24.0f;
+    float ambientStrength = 0.05f + 0.25f * sin(normalizedTime * 3.14159f * 2.0f);
+    glm::vec3 dynamicAmbient(ambientStrength);
+    float dayFactor = sin(normalizedTime*3.14159f*2.0f)*0.5f+0.5f;
+    glm::vec3 dynamicLightColor = glm::mix(glm::vec3(0.5f,0.5f,0.7f), glm::vec3(1.0f,1.0f,0.9f), dayFactor);
+
+    glm::vec3 lightDir = glm::normalize(glm::vec3(0.3f, 1.0f, 0.2f));
+
     m_program->SetUniform("u_lightDir", lightDir);
-    m_program->SetUniform("u_lightColor", lightColor);
-    m_program->SetUniform("u_ambient", ambientColor);
+    m_program->SetUniform("u_lightColor", dynamicLightColor);
+    m_program->SetUniform("u_ambient", dynamicAmbient);
 
     // Bind texture to texture unit 0
     m_buildingTexture->Bind(0);
