@@ -39,6 +39,15 @@ private:
     int m_numVertices;
     int m_numLines;
 
+    //Textures
+    float wall = 0;
+    float wall2 = 1;
+    float roof = 2;
+    float sidewalk = 3;
+    float windows = 4;
+    float windows2 = 5;
+    float asphalt = 6;
+
     // Voronoi diagram parameters
     const int numSites = 125;
     float moveAmount = 25.0f;

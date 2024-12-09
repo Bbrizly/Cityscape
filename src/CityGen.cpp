@@ -693,11 +693,11 @@ void CityGen::drawCrosswalk(Point base, Point direction, float lineLength, float
 
         Vertex v1 = { static_cast<GLfloat>(lineStart.x), lineHeight, static_cast<GLfloat>(lineStart.y), r, g, b, a,
         0.0f,0.0f,
-        0.0f,
+        sidewalk,
         0.0f,1.0f,0.0f };
         Vertex v2 = { static_cast<GLfloat>(lineEnd.x), lineHeight, static_cast<GLfloat>(lineEnd.y), r, g, b, a,
         1.0f,1.0f,
-        0.0f,
+        sidewalk,
         0.0f,1.0f,0.0f };
 
         m_lines.push_back(v1);
@@ -771,11 +771,11 @@ void CityGen::addRoadDecals(Point p1, Point p2) {
         // Add the solid segment as a pair of vertices
         Vertex v1 = { static_cast<GLfloat>(interpStart.x), lineHeight, static_cast<GLfloat>(interpStart.y), r, g, b, a,
         0.0f,0.0f,
-        0.0f, //layer
+        sidewalk, //layer
         0.0f,1.0f,0.0f};
         Vertex v2 = { static_cast<GLfloat>(interpEnd.x), lineHeight, static_cast<GLfloat>(interpEnd.y), r, g, b, a,
         1.0f,1.0f,
-        0.0f,
+        sidewalk,
         0.0f,1.0f,0.0f };
 
         m_lines.push_back(v1);
@@ -1433,6 +1433,12 @@ void CityGen::buildVertexData() {
         GLubyte b = colors[(i * 3 + 2) % colors.size()];
         
         GLubyte a = 255;
+        float buildingLayer = wall2;
+
+        if(i % 2 == 0)
+        {
+            buildingLayer = wall;
+        }
 
         float texWidth = 10.0f; 
         float texHeight = 10.0f;
@@ -1455,20 +1461,20 @@ void CityGen::buildVertexData() {
 
             Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a,
             0.0f,0.0f,
-            0.0f,
+            buildingLayer,
             normal.x, normal.y, normal.z};
             Vertex v2 = { static_cast<GLfloat>(p2.x), 0.0f, static_cast<GLfloat>(p2.y), r, g, b, a,
             tileU,0.0f,
-            0.0f,
+            buildingLayer,
             normal.x, normal.y, normal.z,};
 
             Vertex top1 = { static_cast<GLfloat>(p1.x), wallHeight, static_cast<GLfloat>(p1.y), r, g, b, a,
             0.0f,tileV,
-            0.0f,
+            buildingLayer,
             normal.x, normal.y, normal.z};
             Vertex top2 = { static_cast<GLfloat>(p2.x), wallHeight, static_cast<GLfloat>(p2.y), r, g, b, a,
             tileU,tileV,
-            0.0f,
+            buildingLayer,
             normal.x, normal.y, normal.z};
 
             // Vertex v1 = { static_cast<GLfloat>(p1.x), 0.0f, static_cast<GLfloat>(p1.y), r, g, b, a, 
@@ -1532,7 +1538,7 @@ void CityGen::buildVertexData() {
         // Create sidewalks around cell
         vector<Point> sidewalkPoly = scalePolygon(cell, 0.87f);
         GLubyte r=200,g=200,b=200,a=255;
-        auto sidewalkVerts = fanTriangulatePolygon(sidewalkPoly, vec3((0.0f,1.0f,0.0f)), 0.0f, r, g, b, a);
+        auto sidewalkVerts = fanTriangulatePolygon(sidewalkPoly, vec3((0.0f,1.0f,0.0f)), 0.01f, r, g, b, a);
         m_vertices.insert(m_vertices.end(), sidewalkVerts.begin(), sidewalkVerts.end());
     }
 
@@ -1627,6 +1633,32 @@ void CityGen::buildVertexData() {
 
 */
 
+    { //Ground 
+        int division = 20;
+        // Define vertices for the quad (two triangles)
+        Vertex v1 = { static_cast<GLfloat>(minX), 0.0f, static_cast<GLfloat>(minY), 255,255,255,255,
+                    minX/division, minY/division, asphalt, 0.0f,1.0f,0.0f };
+
+        Vertex v2 = { static_cast<GLfloat>(maxX), 0.0f, static_cast<GLfloat>(minY), 255,255,255,255,
+                    maxX/division, minY/division, asphalt, 0.0f,1.0f,0.0f};
+
+        Vertex top1 = { static_cast<GLfloat>(minX), 0.0f, static_cast<GLfloat>(maxY), 255,255,255,255,
+                    minX/division, maxY/division, asphalt, 0.0f,1.0f,0.0f };
+
+        Vertex top2 = { static_cast<GLfloat>(maxX), 0.0f, static_cast<GLfloat>(maxY), 255,255,255,255,
+                    maxX/division, maxY/division, asphalt, 0.0f,1.0f,0.0f };
+
+        // Add two triangles to form the quad
+        m_vertices.push_back(v1);
+        m_vertices.push_back(top1);
+        m_vertices.push_back(v2);
+        // m_vertices.push_back(top1);
+
+        m_vertices.push_back(top1);
+        m_vertices.push_back(top2);
+        m_vertices.push_back(v2);
+    }
+
     #pragma region Vertex Prep
     m_numVertices = static_cast<int>(m_vertices.size());// * 5.0f); // sussyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
     pushVertexData(m_vertexBuffer,m_vertexDecl,m_vertices);
@@ -1639,7 +1671,10 @@ void CityGen::buildVertexData() {
         "data/building1.tga", //0- Wall
         "data/building2.tga", //1- Wall2 
         "data/building3.tga", //2- Roof
-        "data/brickFloor.tga" //3- Sidewalk
+        "data/brickFloor.tga", //3- Sidewalk
+        "data/building1Windows.tga", //4- Windows in r channel
+        "data/building2Windows.tga", //5- Windows in r channel
+        "data/asphalt.tga", //6- asphalt
 
         });
 
@@ -1661,7 +1696,6 @@ void CityGen::buildVertexData() {
 }
 void CityGen::generate(GLuint program) {
     m_program = wolf::ProgramManager::CreateProgram("data/cube.vsh", "data/cube.fsh");
-    // m_program = program;
 
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
     m_sites = generateSites(numSites, seed);
@@ -1723,7 +1757,7 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     m_arrayTexture->Bind(0);
 
     // Day/night cycle logic:
-    float hours = fmod(m_timer,24.0f);
+    float hours = fmod(m_timer*2,24.0f);
     float normalizedTime = hours / 24.0f;
 
     // Let's define the sun's position:
@@ -1759,7 +1793,7 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     
     // Ambient and diffuse change with sun elevation
     // Ambient: darker at night, brighter at noon
-    float ambientStrength = 0.05f + 0.2f * dayFactor; 
+    float ambientStrength = 0.2f + 0.2f * dayFactor; 
     glm::vec3 dynamicAmbient(ambientStrength);
 
     // Light color also changes slightly
@@ -1781,8 +1815,16 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     // If night (dayFactor close to 0), consider lighting windows or turning on street lights:
     // This can be done by passing another uniform like u_windowLitFactor that depends on dayFactor.
     // For example:
-    float u_windowLitFactor = (1.0f - dayFactor); // More windows lit at night
-    // m_program->SetUniform("u_windowLitFactor", u_windowLitFactor);
+    float desiredLitProbability = 0.3f; // For 30% of windows lit at night
+
+    // Compute window lit factor based on dayFactor and desired probability
+    float u_windowLitFactor = (1.0f - dayFactor) * desiredLitProbability;
+
+    // Clamp to [0.0, 1.0] to ensure valid probability
+    u_windowLitFactor = glm::clamp(u_windowLitFactor, 0.0f, 1.0f);
+
+    // Set the uniform
+    m_program->SetUniform("u_windowLitFactor", u_windowLitFactor);
 
     /*
     m_program->SetUniform("u_time", m_timer);
