@@ -1,0 +1,205 @@
+#include "PolygonUtils.h"
+#include "GeometryUtils.h"
+
+double PolygonUtils::distanceBetweenPoints(const Point& p1, const Point& p2) {
+    return std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+}
+
+std::pair<Point,Point> PolygonUtils::findLargestEdge(std::vector<Point> polygon)
+{
+    if (polygon.size() < 2) {
+        std::cerr << "Polygon must have at least two points to form an edge." << std::endl;
+        return {{0,0},{0,0}};
+    }
+    double maxLength = 0.0;
+    std::pair<Point, Point> largestEdge = {polygon[0], polygon[0]};
+    size_t n = polygon.size();
+    for (size_t i = 0; i < n; ++i) {
+        const Point& p1 = polygon[i];
+        const Point& p2 = polygon[(i + 1) % n];
+        double length = distanceBetweenPoints(p1,p2);
+        if (length > maxLength) {
+            maxLength = length;
+            largestEdge = {p1, p2};
+        }
+    }
+    return largestEdge;
+}
+
+std::pair<std::vector<Point>, std::vector<Point>> PolygonUtils::clipPolygon(std::vector<Point> polygon, Line l) {
+    std::vector<Point> polygonPositive;
+    std::vector<Point> polygonNegative;
+    if (polygon.empty()) {
+        return {polygonPositive, polygonNegative};
+    }
+    Point prev = polygon.back();
+    double prevEval = GeometryUtils::evaluate(l, prev);
+    for (const Point& curr : polygon) {
+        double currEval = GeometryUtils::evaluate(l, curr);
+        bool prevInside = prevEval >= 0;
+        bool currInside = currEval >= 0;
+        if (currInside) {
+            if (!prevInside) {
+                Point intersection;
+                if (GeometryUtils::lineSegmentLineIntersection(prev, curr, l, intersection)) {
+                    polygonPositive.push_back(intersection);
+                    polygonNegative.push_back(intersection);
+                }
+            }
+            polygonPositive.push_back(curr);
+        }
+        else {
+            if (prevInside) {
+                Point intersection;
+                if (GeometryUtils::lineSegmentLineIntersection(prev, curr, l, intersection)) {
+                    polygonPositive.push_back(intersection);
+                    polygonNegative.push_back(intersection);
+                }
+            }
+            polygonNegative.push_back(curr);
+        }
+        prev = curr; 
+        prevEval = currEval;
+    }
+    return {polygonPositive, polygonNegative};
+}
+
+Point PolygonUtils::getCentroid(std::vector<Point> polygon) {
+    if (polygon.empty()) return {};
+    double centroidX = 0.0;
+    double centroidY = 0.0;
+    for (const Point& p : polygon) {
+        centroidX += p.x + 0.5f;
+        centroidY += p.y + 0.5f;
+    }
+    centroidX /= polygon.size();
+    centroidY /= polygon.size();
+    return {centroidX, centroidY};
+}
+
+bool PolygonUtils::isConvex(const std::vector<Point>& polygon) {
+    if (polygon.size() < 3) return false;
+    bool sign = false;
+    size_t n = polygon.size();
+    for (size_t i = 0; i < n; i++) {
+        size_t j = (i + 1) % n;
+        size_t k = (i + 2) % n;
+        double dx1 = polygon[j].x - polygon[i].x;
+        double dy1 = polygon[j].y - polygon[i].y;
+        double dx2 = polygon[k].x - polygon[j].x;
+        double dy2 = polygon[k].y - polygon[j].y;
+        double cross = dx1 * dy2 - dy1 * dx2;
+        if (i == 0) {
+            sign = cross > 0;
+        }
+        else {
+            if ((cross > 0) != sign) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+Line PolygonUtils::moveLineToCenter(Line l, std::vector<Point> polygon) {
+    Point centroid = getCentroid(polygon);
+    return GeometryUtils::moveToPoint(l, centroid);
+}
+
+std::vector<Point> PolygonUtils::scalePolygon(const std::vector<Point>& polygon, float scaleFactor) {
+    if (polygon.empty()) return {};
+    double centroidX = 0.0;
+    double centroidY = 0.0;
+    for (const Point& p : polygon) {
+        centroidX += p.x;
+        centroidY += p.y;
+    }
+    centroidX /= polygon.size();
+    centroidY /= polygon.size();
+
+    std::vector<Point> scaledPolygon;
+    for (const Point& p : polygon) {
+        double newX = centroidX + (p.x - centroidX) * scaleFactor;
+        double newY = centroidY + (p.y - centroidY) * scaleFactor;
+        scaledPolygon.push_back({newX, newY});
+    }
+    return scaledPolygon;
+}
+
+float PolygonUtils::calculatePolygonArea(const std::vector<Point>& polygon) {
+    float area = 0.0f;
+    size_t n = polygon.size();
+    for (size_t i = 0; i < n; i++) {
+        const Point& p1 = polygon[i];
+        const Point& p2 = polygon[(i + 1) % n];
+        area += (p1.x * p2.y - p2.x * p1.y);
+    }
+    return std::abs(area) / 2.0f;
+}
+
+bool PolygonUtils::findSmallestEdgeAmount(std::vector<Point> polygon, float minEdgeLength) {
+    if (polygon.size() < 2) {
+        return false;
+    }
+    size_t n = polygon.size();
+    int edgesBelowMin = 0;
+    for (size_t i = 0; i < n; ++i) {
+        const Point& p1 = polygon[i];
+        const Point& p2 = polygon[(i + 1) % n];
+        double length = std::sqrt(std::pow(p2.x - p1.x, 2) + std::pow(p2.y - p1.y, 2));
+        if (length < minEdgeLength) {
+            edgesBelowMin++;
+            if (edgesBelowMin >= 2) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+std::vector<Vertex> PolygonUtils::fanTriangulatePolygon(const std::vector<Point>& polygon, 
+                                                   const glm::vec3& normal, float height, float layer,
+                                                   GLubyte r, GLubyte g, GLubyte b, GLubyte a)
+{
+    std::vector<Vertex> result;
+    if (polygon.size() < 3) return result;
+    double minX = std::numeric_limits<double>::max();
+    double maxX = -std::numeric_limits<double>::max();
+    double minZ = std::numeric_limits<double>::max();
+    double maxZ = -std::numeric_limits<double>::max();
+
+    std::vector<Vertex> tempVerts;
+    tempVerts.reserve(polygon.size());
+
+    for (const auto& p : polygon) {
+        Vertex v;
+        v.x = (GLfloat)p.x;
+        v.y = (GLfloat)height;
+        v.z = (GLfloat)p.y;
+        v.r = r; v.g = g; v.b = b; v.a = a;
+        v.nx = normal.x; v.ny = normal.y; v.nz = normal.z;
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minZ) minZ = p.y;
+        if (p.y > maxZ) maxZ = p.y;
+        v.layer = layer;
+        tempVerts.push_back(v);
+    }
+
+    float uRange = (float)(maxX - minX);
+    float vRange = (float)(maxZ - minZ);
+    if (uRange < 1e-9f) uRange = 1.0f;
+    if (vRange < 1e-9f) vRange = 1.0f;
+
+    for (auto &vert : tempVerts) {
+        vert.u = (vert.x - (GLfloat)minX)/uRange;
+        vert.v = (vert.z - (GLfloat)minZ)/vRange;
+    }
+
+    for (size_t i = 1; i < polygon.size() - 1; i++) {
+        result.push_back(tempVerts[0]);
+        result.push_back(tempVerts[i+1]);
+        result.push_back(tempVerts[i]);
+    }
+    return result;
+}

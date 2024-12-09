@@ -23,10 +23,11 @@ void main()
 
     switch (int(v_layer))
     {
-        case 0: case 1: //building 1 and 2 [+ 4] = textures 4 and 5
+        case 0: case 1: //building 0 and 1 [+ 4] = textures 4 and 5
             windowMask = texture(u_texture, vec3(v_uv1, v_layer + 4)).r; // Window mask from layer 4
 
-            vec2 scaledUV = floor(v_uv1 * 5.0); // Scale factor for window "cells"
+            //Curtain logic
+            vec2 scaledUV = floor(v_uv1 * ((v_layer + 1.0f) * 5)); // Scale factor for window "cells
 
             float randVal = fract(sin(dot(scaledUV, vec2(12.9898, 78.233))) * 43758.5453);
             

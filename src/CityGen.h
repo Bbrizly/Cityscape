@@ -2,19 +2,17 @@
 #include "../wolf/wolf.h"
 #include "../samplefw/Sample.h"
 #include "Vertex.h"
+#include "GeometryUtils.h"
 #include <vector>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 
-using namespace std;
-using namespace glm;
+// Forward declarations of utility classes
+class PolygonUtils;
+class Voronoi;
+class Debug;
+class DrawRoad;
 
-// Basic geometric structures
-struct Point { double x, y; };
-struct Line { double a, b, c; }; // Line equation: ax + by + c = 0
-struct Edge { Point start, end; };
-
-// CityGen Class Definition
 class CityGen {
 private:
     wolf::Program* m_program;
@@ -27,19 +25,15 @@ private:
     wolf::VertexDeclaration* m_lineDecl;
 
     // Debugging vectors
-    vector<vector<Point>> debugs;
-    vector<vector<Point>> debugs1;
-    vector<vector<Point>> debugs2;
+    std::vector<std::vector<Point>> debugs;
+    std::vector<std::vector<Point>> debugs1;
+    std::vector<std::vector<Point>> debugs2;
 
-    // OpenGL related variables
-    GLuint otherShader;
-    vector<Vertex> m_vertices;
-    vector<Vertex> m_lines;
-    bool Debug = true;//false;
+    bool Debug = true;
     int m_numVertices;
     int m_numLines;
 
-    //Textures
+    //Textures layers
     float wall = 0;
     float wall2 = 1;
     float roof = 2;
@@ -53,7 +47,7 @@ private:
     float moveAmount = 25.0f;
     float maxMoveAmount = 30.0f;
     float minMoveAmount = 20.0f;
-    float minPolygonArea = (moveAmount * moveAmount )/4;//50.0f;
+    float minPolygonArea = (moveAmount * moveAmount )/4;
     float minEdge = 2.0f;
     float minEdge2 = 0.5f;
 
@@ -63,79 +57,28 @@ private:
     const double maxY = 1400.0;
     const double epsilon = 1e-9;
 
-    // Geometric and utility functions
-    GLuint loadTexture(const std::string& filepath);
-    void drawCrosswalk(Point base, Point direction, float lineLength, float spacing, float lineHeight);
-    vector<pair<Point, Point>> findSharedEdges(const vector<vector<Point>>& polygons);
-    void addRoadDecals(Point p1, Point p2);
-    double distanceBetweenPoints(const Point& p1, const Point& p2);
-    Line CreateLineFromPoints(const Point& p1, const Point& p2);
-    Point findMidpoint(const Point& p1, const Point& p2);
-    Line perpendicularBisector(const Point& p1, const Point& p2);
-    bool lineSegmentLineIntersection(const Point& p1, const Point& p2, const Line& l, Point& intersection);
-    double evaluate(const Line& l, const Point& p);
-    Point getPerpendicularDirVector(pair<Point,Point> edge, const Point& centroid);
-    Point getDirectionVector(const Point& from, const Point& to);
-    Line moveLineInDirection(const Line& line, const Point& direction, double distance);
-    Point movePointInDirection(const Point& point, const Point& direction, double distance);
-    Line moveToPoint(Line l, Point p);
-    Point normalizeVector(double x, double y);
-    Point perpendicularVector(double x, double y);
-    Point oppositeVector(double x, double y);
-    Line makePerpendicularLine(const Line& originalLine);
-    vector<Point> findIntersectionsWithBoundary(const Line& line);
-    pair<Point, Point> findLargestEdge(vector<Point> polygon);
-    pair<vector<Point>, vector<Point>> clipPolygon(vector<Point> polygon, Line l);
-    Point getCentroid(vector<Point> polygon);
-    bool isConvex(const vector<Point>& polygon);
-    Line moveLineToCenter(Line l, vector<Point> polygon);
-    vector<Point> scalePolygon(const vector<Point>& polygon, float scaleFactor);
-    float calculatePolygonArea(const vector<Point>& polygon);
-    bool findSmallestEdgeAmount(vector<Point> polygon, float minEdgeLength);
+    std::vector<Point> m_sites;
+    std::vector<std::vector<Point>> m_voronoiCells;
+    std::vector<std::vector<Point>> m_chunks;
+    std::vector<std::vector<Point>> m_blocks;
+    std::vector<std::vector<Point>> m_strips;
+    std::vector<std::vector<Point>> m_buildings;
 
-    glm::vec3 calculateQuadNormal(const Point& p1, const Point& p2);
-
-    vector<Vertex> fanTriangulatePolygon(const vector<Point>& polygon, 
-                                                   const vec3& normal,  float height,
-                                                   GLubyte r, GLubyte g, GLubyte b, GLubyte a);
+    //Data
+    std::vector<Vertex> m_vertices;
+    std::vector<Vertex> m_lines;
 
     wolf::Texture* CreateArrayTextureFromFiles(const std::vector<std::string>& filePaths);
+    void pushVertexData(wolf::VertexBuffer*& vBuffer, wolf::VertexDeclaration*& vDecl, std::vector<Vertex>& vertices);
+    glm::vec3 calculateQuadNormal(const Point& p1, const Point& p2);
 
-
-    // Voronoi and chunk processing
-    vector<Point> generateSites(int numSites, unsigned int seed);
-    void computeVoronoiDiagram();
+    void buildVertexData();
     void computeChunks();
     void sweepToBlocks();
-    void buildVertexData();
-
-    // Debugging functions
-    void addDebug1(Point p);
-    void addLineDebug1(Point p1, Point p2);
-    void addDebug(Point p);
-    void addLineDebug(Point p1, Point p2);
-    void addLineToVector(Point p1, Point vector);
-    void addLineToVector1(Point p1, Point vector);
-
-    // Data structures for Voronoi and building generation
-    void pushVertexData(wolf::VertexBuffer*& vBuffer, wolf::VertexDeclaration*& vDecl, vector<Vertex>& vertices);
-    vector<Point> m_sites;
-    vector<vector<Point>> m_voronoiCells;
-    vector<vector<Point>> m_chunks;
-    vector<vector<Point>> m_blocks;
-    vector<vector<Point>> m_strips;
-    vector<vector<Point>> m_buildings;
-
-    // Constants
-    const float maximumChunkSize = 5000.0f;
 
 public:
-    // Public interface
     void generate(GLuint program);
     void deGenerate();
     void reGenerate();
-    void render(const mat4& proj, const mat4& view, float m_timer);
-
-}
-
-;
+    void render(const glm::mat4& proj, const glm::mat4& view, float m_timer);
+};

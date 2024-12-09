@@ -42,7 +42,59 @@ Texture* TextureManager::CreateTexture(void* pData, unsigned int width, unsigned
 Texture* TextureManager::CreateArrayTexture(void* pData, unsigned int width, unsigned int height,unsigned int layers, Texture::Format fmt){
 	return new Texture(pData, width, height, layers, fmt);
 }
+Texture* TextureManager::CreateAutoArrayTexture(const std::vector<std::string>& filePaths){
+	
+	if(filePaths.empty()) {
+        printf("Error: No file paths provided for array texture creation.\n");
+        return nullptr;
+    }
 
+    int texWidth, texHeight, texChannels;
+    std::vector<unsigned char*> imageDataList;
+    texWidth = texHeight = texChannels = 0;
+
+    for(const auto& path : filePaths) {
+        unsigned char* data = stbi_load(path.c_str(), &texWidth, &texHeight, &texChannels, 4);
+        if(!data) {
+            printf("Error: Failed to load texture '%s'\n", path.c_str());
+            for(auto& imgData : imageDataList) {
+                stbi_image_free(imgData);
+            }
+            return nullptr;
+        }
+        imageDataList.push_back(data);
+    }
+
+    size_t singleLayerSize = texWidth * texHeight * 4;
+    size_t totalSize = singleLayerSize * imageDataList.size();
+    unsigned char* arrayData = new unsigned char[totalSize];
+
+    for(size_t i = 0; i < imageDataList.size(); ++i) {
+        memcpy(arrayData + i * singleLayerSize, imageDataList[i], singleLayerSize);
+    }
+
+    wolf::Texture* arrayTexture = wolf::TextureManager::CreateArrayTexture(
+        arrayData, texWidth, texHeight, (unsigned int)imageDataList.size(), wolf::Texture::FMT_8888
+    );
+
+    if(!arrayTexture) {
+        printf("Error: Failed to create array texture.\n");
+        delete[] arrayData;
+        for(auto& imgData : imageDataList) {
+            stbi_image_free(imgData);
+        }
+        return nullptr;
+    }
+
+    arrayTexture->SetWrapMode(wolf::Texture::WM_Repeat, wolf::Texture::WM_Repeat);
+    arrayTexture->SetFilterMode(wolf::Texture::FM_TrilinearMipmap, wolf::Texture::FM_Linear);
+
+    delete[] arrayData;
+    for(auto& imgData : imageDataList) {
+        stbi_image_free(imgData);
+    }
+    return arrayTexture;
+}
 Texture* TextureManager::CreateRenderTexture(unsigned int width, unsigned int height, Texture::Format fmt) 
 {
 	Texture* pRT = new Texture(width, height, fmt);
