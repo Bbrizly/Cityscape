@@ -79,8 +79,8 @@ Building CityGen::determineBuildingDetails(const vector<Point>& polygon)
 
     if (dist < industrialThreshold) {
         b.district = District::Industrial;
-        b.textureLayer = 0.0f; // Industrial
-        SeamlessAddition = baseAddition0;
+        b.textureLayer = 2.0f; // Industrial
+        SeamlessAddition = baseAddition2;
 
         std::uniform_int_distribution<int> storyDist(IndustrialMinStories, IndustrialMaxStories);
         stories = storyDist(gen);
@@ -92,19 +92,30 @@ Building CityGen::determineBuildingDetails(const vector<Point>& polygon)
             b.isSpecial = true;
         }
     }
-    else if (dist < commercialThreshold) {
-        b.district = District::Commercial;
-        b.textureLayer = 1.0f; // Commercial
-        std::uniform_int_distribution<int> storyDist(CommercialMinStories, CommercialMaxStories);
-        stories = storyDist(gen);
-    }
-    else { // Residential
-        b.district = District::Residential;
-        b.textureLayer = 2.0f; 
-        std::uniform_int_distribution<int> storyDist(ResidentialMinStories, ResidentialMaxStories);
-        stories = storyDist(gen);
-    }
+    else{
+        //randomyl choosed between commercial and residential texturess
+        std::uniform_real_distribution<float> textureChance(0.0f, 1.0f);
+        if(textureChance(gen) <0.5f)
+        {
+            
+            b.textureLayer =  1.0f;
+        }else
+        {
+            b.textureLayer = 0.0f; //
+            SeamlessAddition = baseAddition0;
+        }
 
+        if (dist < commercialThreshold) {
+            b.district = District::Commercial;
+            std::uniform_int_distribution<int> storyDist(CommercialMinStories, CommercialMaxStories);
+            stories = storyDist(gen);
+        }
+        else { // Residential
+            b.district = District::Residential;
+            std::uniform_int_distribution<int> storyDist(ResidentialMinStories, ResidentialMaxStories);
+            stories = storyDist(gen);
+        }
+    }
     
     b.height = (baseStoryHeight * stories) + SeamlessAddition;
 

@@ -95,6 +95,7 @@ private:
     const int ResidentialMaxStories = 5;
 
     const float baseAddition0 = 0.8f;    // added to the top to make it seamlesss
+    const float baseAddition2 = 0.6f;
     const float baseStoryHeight = 10.0f;    // Height per story
     //normally is 10 for 618 x 600 but im 10.8 for extra seamlessness in texturing 
 
