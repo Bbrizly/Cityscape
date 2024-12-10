@@ -1,76 +1,8 @@
 #include "CityGen.h"
 using namespace std; using namespace glm;
 
-static vector<array<GLubyte,3>> industrialColors = {
-    {50,50,50},   // Dark Gray
-    {20,20,20},   // Black
-    {100,100,100}, // Medium Gray
-    {200,200,200}  // Light Gray
-};
-
-static vector<array<GLubyte,3>> commercialColors = {
-    {240,240,240}, // White
-    {180,180,180}, // Light Gray
-    {100,100,100}, // Medium Gray
-    {20,20,20},    // Black
-    {100,100,100}, // Dark Gray
-    {180,70,0}     // Dark Reddish Orange
-};
 
 
-static vector<array<GLubyte,3>> residentialColors = {
-    {230,210,180}, // Beige
-    {255,225,150}, // Building Yellow
-    {180,140,100}, // Light Brown
-    {140,100,60},  // Dark Brown
-    {245,222,179}, // Wheat (soft yellow-beige)
-    {255,248,220}, // Cornsilk (very pale cream)
-    {210,180,140}, // Tan
-    {222,184,135}  // Burlywood (light wood-like brown)
-};
-
-
-
-
-/*
-static vector<array<GLubyte,3>> industrialColors = {
-    {200,200,200}, // Light Gray
-    {180,180,180}, // Mid Gray
-    {220,220,220}, // Very Light Gray
-    {160,160,160}, // Slightly Dark Gray
-    {170,170,190}, // Gray with a hint of blue
-    {130,130,150}, // Darker steel blue
-    {210,210,230}, // Very pale blue-gray
-    {100,100,100}  // Dark Gray
-};
-
-// Commercial colors (vibrant oranges, some earthy tones):
-// Orange, amber, light browns, etc.
-static vector<array<GLubyte,3>> commercialColors = {
-    {255,165,0},   // Orange
-    {255,140,0},   // Dark Orange
-    {255,128,0},   // Pumpkin Orange
-    {230,120,0},   // Burnt Orange
-    {255,180,50},  // Light Orange
-    {200,230,200}, // Pale greenish
-    {210,180,140}, // Tan
-    {220,200,200}, // Off-white pinkish
-    {200,220,240}, // Light bluish
-    {240,220,200}  // Cream
-};
-
-// Residential colors (homey feeling: pastels and warm tones):
-static vector<array<GLubyte,3>> residentialColors = {
-    {200,230,200}, // Light pastel green
-    {210,180,140}, // Tan (wood-like)
-    {220,200,200}, // Light warm gray
-    {200,220,240}, // Soft baby blue
-    {240,220,200}, // Creamy
-    {255,225,200}, // Light peach
-    {230,230,210}, // Warm off-white
-    {220,210,180}, // Light sand
-};
-*/
 void CityGen::computeChunks() {
     m_chunks = m_voronoiCells;
     unsigned int seed = static_cast<unsigned int>(time(nullptr));

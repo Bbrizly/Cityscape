@@ -73,6 +73,7 @@ private:
     const double maxX = 500.0;
     const double minY = -400.0;
     const double maxY = 400.0;
+
     float cyceLength = 48.0f;
     const double epsilon = 1e-9;
 

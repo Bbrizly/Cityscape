@@ -1,5 +1,33 @@
 #include "BuildingGen.h"
 
+static vector<array<GLubyte,3>> m_industrialColors = {
+    {50,50,50},   // Dark Gray
+    {20,20,20},   // Black
+    {100,100,100}, // Medium Gray
+    {200,200,200},  // Light Gray
+    {130,130,150}, // Darker steel blue
+    {210,210,230}, // Very pale blue-gray
+};
+
+static vector<array<GLubyte,3>> m_commercialColors = {
+    {240,240,240}, // White
+    {180,180,180}, // Light Gray
+    {100,100,100}, // Medium Gray
+    {20,20,20},    // Black
+    {100,100,100}, // Dark Gray
+    {180,70,0}     // Dark Reddish Orange
+};
+
+
+static vector<array<GLubyte,3>> m_residentialColors = {
+    {230,210,180}, // Beige
+    {140,100,60},  // Dark Brown
+    {210,180,140}, // Tan
+    {165,42,42},   // Reddish Brown (Brownish Red)
+    {139,69,19},   // Brown Brown (Saddle Brown)
+    {85,107,47}    // Brownish Green (Olive Drab)
+};
+
 BuildingGen::BuildingGen(float districtRadius, float minPolygonArea,
                                      int IndustrialMinStories, int IndustrialMaxStories,
                                      int CommercialMinStories, int CommercialMaxStories,
@@ -19,10 +47,6 @@ BuildingGen::BuildingGen(float districtRadius, float minPolygonArea,
   m_baseAddition2(baseAddition2),
   m_specialBuildingChance(specialBuildingChance)
 {
-    // Initialize color arrays here or hardcode them
-    m_industrialColors = { { {50,50,50}, {20,20,20}, {100,100,100}, {200,200,200} } };
-    m_commercialColors = { { {240,240,240}, {180,180,180}, {100,100,100}, {20,20,20}, {100,100,100}, {180,70,0} } };
-    m_residentialColors = { { {230,210,180}, {255,225,150}, {180,140,100}, {140,100,60}, {245,222,179}, {255,248,220}, {210,180,140}, {222,184,135} } };
 }
 
 Building BuildingGen::generateBuildingDetails(const std::vector<Point>& polygon, const Point& districtCenter) {
@@ -147,6 +171,7 @@ Building BuildingGen::createResidentialBuilding(const std::vector<Point>& polygo
 
     // Texture layer random
     std::uniform_real_distribution<float> textureChance(0.0f, 1.0f);
+    
     if (textureChance(gen) < 0.5f) {
         b.textureLayer = 1.0f;
     } else {

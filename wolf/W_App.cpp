@@ -109,6 +109,8 @@ void App::_init()
     glfwSetScrollCallback(m_pWindow, _mouseScrollCallback);
     glfwMakeContextCurrent(m_pWindow);
     glfwSwapInterval(1);
+    
+    glfwSetInputMode(m_pWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     GLenum err = glewInit();
     if (GLEW_OK != err)

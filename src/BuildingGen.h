@@ -32,11 +32,6 @@ private:
     float m_baseAddition2;
     float m_specialBuildingChance;
 
-    // Color arrays (could also be static or passed in)
-    std::vector<std::array<GLubyte,3>> m_industrialColors;
-    std::vector<std::array<GLubyte,3>> m_commercialColors;
-    std::vector<std::array<GLubyte,3>> m_residentialColors;
-
     // Helper methods
     Building createIndustrialBuilding(const std::vector<Point>& polygon, double dist, float normalizedDist, std::mt19937& gen);
     Building createCommercialBuilding(const std::vector<Point>& polygon, double dist, float normalizedDist, std::mt19937& gen);

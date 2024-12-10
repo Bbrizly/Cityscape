@@ -51,15 +51,8 @@ void FirstPersonCamera::update(float dt)
         movement -= m_up;
     }
 
-    // // Normalize movement so diagonals are not faster
-    // float length = glm::length(movement);
-    // if (glm::length(movement) > 0.0001f) {
-    //     movement = glm::normalize(movement) * (adjustedSpeed * dt);
-    // }
-    // m_position += movement;
     movement *= adjustedSpeed * dt;
 
-    // Update camera position
     m_position += movement;
 
     //Press Y to invert mouse y axis
@@ -67,14 +60,14 @@ void FirstPersonCamera::update(float dt)
         m_invertY = !m_invertY;
     }
 
-    if (m_pApp->isRMBDown()) {
-        glm::vec2 currentMousePos = m_pApp->getMousePos();
-        glm::vec2 mouseMovement = currentMousePos - m_lastMousePos;
-        _updateOrientation(mouseMovement);
-        m_lastMousePos = currentMousePos; // Update only if RMB is held
-    } else {
-        m_lastMousePos = m_pApp->getMousePos(); 
-    }
+    // if (m_pApp->isRMBDown()) {
+    glm::vec2 currentMousePos = m_pApp->getMousePos();
+    glm::vec2 mouseMovement = currentMousePos - m_lastMousePos;
+    _updateOrientation(mouseMovement);
+    m_lastMousePos = currentMousePos; // Update only if RMB is held
+    // } else {
+    //     m_lastMousePos = m_pApp->getMousePos(); 
+    // }
 }
 
 void FirstPersonCamera::_updateOrientation(const glm::vec2& mouseMovement)
