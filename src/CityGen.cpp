@@ -12,6 +12,38 @@
 using namespace std; using namespace glm;
 
 static vector<array<GLubyte,3>> industrialColors = {
+    {50,50,50},   // Dark Gray
+    {20,20,20},   // Black
+    {100,100,100}, // Medium Gray
+    {200,200,200}  // Light Gray
+};
+
+static vector<array<GLubyte,3>> commercialColors = {
+    {240,240,240}, // White
+    {180,180,180}, // Light Gray
+    {100,100,100}, // Medium Gray
+    {20,20,20},    // Black
+    {100,100,100}, // Dark Gray
+    {180,70,0}     // Dark Reddish Orange
+};
+
+
+static vector<array<GLubyte,3>> residentialColors = {
+    {230,210,180}, // Beige
+    {255,225,150}, // Building Yellow
+    {180,140,100}, // Light Brown
+    {140,100,60},  // Dark Brown
+    {245,222,179}, // Wheat (soft yellow-beige)
+    {255,248,220}, // Cornsilk (very pale cream)
+    {210,180,140}, // Tan
+    {222,184,135}  // Burlywood (light wood-like brown)
+};
+
+
+
+
+/*
+static vector<array<GLubyte,3>> industrialColors = {
     {200,200,200}, // Light Gray
     {180,180,180}, // Mid Gray
     {220,220,220}, // Very Light Gray
@@ -48,7 +80,7 @@ static vector<array<GLubyte,3>> residentialColors = {
     {230,230,210}, // Warm off-white
     {220,210,180}, // Light sand
 };
-
+*/
 void CityGen::computeChunks() {
     m_chunks = m_voronoiCells;
     unsigned int seed = static_cast<unsigned int>(time(nullptr));
@@ -508,15 +540,16 @@ void CityGen::buildVertexData() {
 
     {// GROUND FLOOR
         int div = 15;
+        int padding = 10;
         float minUVX = minX / div;
         float maxUVX = maxX / div;
         float minUVY = minY / div;
         float maxUVY = maxY / div;
-        Point bottomLeft = { minX, minY };
-        Point bottomRight = { maxX, minY };
-        Point topLeft = { minX, maxY };
-        Point topRight = { maxX, maxY };
-        float ground = 0.0f;
+        Point bottomLeft = { minX-padding, minY-padding };
+        Point bottomRight = { maxX+padding, minY-padding };
+        Point topLeft = { minX-padding, maxY+padding };
+        Point topRight = { maxX+padding, maxY+padding };
+        float ground = -0.1f;
         float quadLayer = asphalt;
         glm::vec3 groundNormal = vec3(0.0f, 1.0f, 0.0f);
         GLubyte a,r,g,b = 255;

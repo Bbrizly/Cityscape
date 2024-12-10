@@ -11,8 +11,8 @@ FirstPersonCamera::FirstPersonCamera(wolf::App* pApp)
       m_movementSpeed(10.0f),
       m_mouseSensitivity(0.1f),
       m_invertY(false), // New: invert Y toggle
-      m_normalSpeed(1.0f),
-      m_SprintSpeed(2.0f)
+      m_normalSpeed(10.0f),
+      m_SprintSpeed(20.0f)
 {
     m_lastMousePos = m_pApp->getMousePos();
 }
@@ -43,30 +43,27 @@ void FirstPersonCamera::update(float dt)
         movement += right;
     }
 
-    // Space moves upward according to camera angle:
-    // If you want strictly upward world-space: movement += m_up;
-    // If you want upward relative to direction (angled), 
-    // we can project the direction onto the up-axis or just use the up vector directly.
-    // Let's do strictly upward world-space (m_up):
+//space for up and lceft ctrl for down
     if (m_pApp->isKeyDown(GLFW_KEY_SPACE)) {
         movement += m_up;
     }
-
-    // Down (Left Control)
     if (m_pApp->isKeyDown(GLFW_KEY_LEFT_CONTROL)) {
         movement -= m_up;
     }
 
-    // Normalize movement so diagonals are not faster
-    float length = glm::length(movement);
-    if (length > 0.0001f) {
-        movement = (movement / length) * (adjustedSpeed * dt);
-    }
+    // // Normalize movement so diagonals are not faster
+    // float length = glm::length(movement);
+    // if (glm::length(movement) > 0.0001f) {
+    //     movement = glm::normalize(movement) * (adjustedSpeed * dt);
+    // }
+    // m_position += movement;
+    movement *= adjustedSpeed * dt;
 
+    // Update camera position
     m_position += movement;
 
-    // Toggle invert Y if 'I' pressed (just an example key)
-    if (m_pApp->isKeyJustDown('I')) {
+    //Press Y to invert mouse y axis
+    if (m_pApp->isKeyJustDown('Y')) {
         m_invertY = !m_invertY;
     }
 
@@ -83,7 +80,7 @@ void FirstPersonCamera::update(float dt)
 void FirstPersonCamera::_updateOrientation(const glm::vec2& mouseMovement)
 {
     m_yaw += mouseMovement.x * m_mouseSensitivity;
-    // Invert Y if m_invertY is true
+    // Invert Y if m_invertY
     float yMovement = m_invertY ? mouseMovement.y : -mouseMovement.y;
     m_pitch += yMovement * m_mouseSensitivity; 
 
@@ -105,10 +102,10 @@ glm::mat4 FirstPersonCamera::getViewMatrix() const
 
 glm::mat4 FirstPersonCamera::getProjMatrix(int width, int height) const
 {
-    float fov = 45.0f;
+    float fov = 60.0f;
     float aspectRatio = static_cast<float>(width) / static_cast<float>(height);
     float nearPlane = 0.1f;
-    float farPlane = 500.0f;
+    float farPlane = 5000.0f;
     return glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
 }
 

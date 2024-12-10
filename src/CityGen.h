@@ -60,7 +60,7 @@ private:
     float asphalt = 8;
 
     // Voronoi diagram parameters
-    const int numSites = 125;
+    const int numSites = 25;
     float moveAmount = 25.0f;
     float maxMoveAmount = 50.0f;
     float minMoveAmount = 40.0f;
@@ -70,10 +70,10 @@ private:
     float minEdge = 2.0f;
     float minEdge2 = 0.5f;
 
-    const double minX = -1500.0;
-    const double maxX = 1500.0;
-    const double minY = -1400.0;
-    const double maxY = 1400.0;
+    const double minX = -500.0;
+    const double maxX = 500.0;
+    const double minY = -400.0;
+    const double maxY = 400.0;
     float cyceLength = 48.0f;
     const double epsilon = 1e-9;
 
@@ -86,14 +86,14 @@ private:
     Point districtCenter;
     float districtRadius = 0.0f;
     
-    const int ResidentialMinStories = 1;
-    const int ResidentialMaxStories = 5;
+    const int ResidentialMinStories = 2;
+    const int ResidentialMaxStories = 8;
 
-    const int CommercialMinStories = 5;
+    const int CommercialMinStories = 8;
     const int CommercialMaxStories = 15;
 
     const int IndustrialMinStories = 20;
-    const int IndustrialMaxStories = 30;
+    const int IndustrialMaxStories = 35;
 
     const float baseAddition0 = 0.8f;    // added to the top to make it seamlesss
     const float baseAddition2 = 0.6f;
