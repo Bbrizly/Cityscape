@@ -9,9 +9,7 @@
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb_image.h>
-
-using namespace std;
-using namespace glm;
+using namespace std;using namespace glm;
 
 void CityGen::computeChunks() {
     m_chunks = m_voronoiCells;
@@ -53,13 +51,187 @@ void CityGen::computeChunks() {
     m_voronoiCells = tempPolygonList;
 }
 
+Building CityGen::determineBuildingDetails(const vector<Point>& polygon)
+{
+    Building b;
+    b.polygons = polygon;
+    b.isSpecial = false;
+    float SeamlessAddition = 0.0f;
+
+    float area = PolygonUtils::calculatePolygonArea(polygon);
+    if (area < minPolygonArea) { //not sure if this is gonna work
+        b.height = 0.0f;
+        return b;
+    }
+    Point centroid = PolygonUtils::getCentroid(polygon);
+    double dist = PolygonUtils::distanceBetweenPoints(centroid, districtCenter);
+
+    float normalizedDist = (float)(dist / districtRadius);
+    normalizedDist = std::clamp(normalizedDist, 0.0f, 1.0f);
+
+    float closeThreshold = districtRadius / 6.0f;
+    float industrialThreshold = districtRadius / 3.0f;
+    float commercialThreshold = (2.0f * districtRadius) / 3.0f; 
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    int stories = 1;
+
+    if (dist < industrialThreshold) {
+        b.district = District::Industrial;
+        b.textureLayer = 0.0f; // Industrial
+        SeamlessAddition = baseAddition0;
+
+        std::uniform_int_distribution<int> storyDist(IndustrialMinStories, IndustrialMaxStories);
+        stories = storyDist(gen);
+
+        // Determine if the building is special (1 in 10)
+        std::uniform_real_distribution<float> chanceDist(0.0f, 1.0f);
+        float chance = chanceDist(gen);
+        if (chance < specialBuildingChance) {
+            b.isSpecial = true;
+        }
+    }
+    else if (dist < commercialThreshold) {
+        b.district = District::Commercial;
+        b.textureLayer = 1.0f; // Commercial
+        std::uniform_int_distribution<int> storyDist(CommercialMinStories, CommercialMaxStories);
+        stories = storyDist(gen);
+    }
+    else { // Residential
+        b.district = District::Residential;
+        b.textureLayer = 2.0f; 
+        std::uniform_int_distribution<int> storyDist(ResidentialMinStories, ResidentialMaxStories);
+        stories = storyDist(gen);
+    }
+
+    
+    b.height = (baseStoryHeight * stories) + SeamlessAddition;
+
+    return b;
+}
+
+void CityGen::BuildingToVerticies(const Building& building, vector<Vertex>& m_vertices, float ground)
+{
+    if (building.polygons.size() < 3 || building.height <= 0.0f) { 
+        return;
+    }
+
+    // Choose colors arbitrarily or based on district
+    GLubyte r,g,b,a;
+    a = 255;
+    r = building.r;
+    g = building.g;
+    b = building.b;
+
+    switch(building.district) {
+        case District::Industrial: r = 200; g = 200; b = 200; break;
+        case District::Commercial: r = 0; g = 255; b = 0; break;
+        case District::Residential: r = 0; g = 0; b = 255; break;
+    }
+
+    float wallHeight = building.height;
+    float buildingLayer = building.textureLayer;
+    vec3 topNormal = vec3(0.0f,1.0f,0.0f);
+    float texWidth = 10.0f; 
+    float texHeight = 10.0f;
+
+    // Create walls
+    for (size_t j = 0; j < building.polygons.size(); ++j) {
+        Point p1 = building.polygons[j];
+        Point p2 = building.polygons[(j + 1) % building.polygons.size()];
+        float width = (float)PolygonUtils::distanceBetweenPoints(p1,p2);
+        float tileU = width / texWidth;
+        float tileV = wallHeight / texHeight;
+        glm::vec3 normal = calculateQuadNormal(p1, p2);
+
+        Vertex v1 = { (GLfloat)p1.x, ground, (GLfloat)p1.y, r, g, b, a,
+        0.0f,0.0f,
+        buildingLayer,
+        normal.x, normal.y, normal.z};
+
+        Vertex v2 = { (GLfloat)p2.x, ground, (GLfloat)p2.y, r, g, b, a,
+        tileU,0.0f,
+        buildingLayer,
+        normal.x, normal.y, normal.z};
+
+        Vertex top1 = { (GLfloat)p1.x, (ground + wallHeight), (GLfloat)p1.y, r, g, b, a,
+        0.0f,tileV,
+        buildingLayer,
+        normal.x, normal.y, normal.z};
+
+        Vertex top2 = { (GLfloat)p2.x, (ground + wallHeight), (GLfloat)p2.y, r, g, b, a,
+        tileU,tileV,
+        buildingLayer,
+        normal.x, normal.y, normal.z};
+
+        m_vertices.push_back(v1);
+        m_vertices.push_back(top1);
+        m_vertices.push_back(v2);
+
+        m_vertices.push_back(top1);
+        m_vertices.push_back(top2);
+        m_vertices.push_back(v2);
+    }
+
+    // Create roof
+    auto roofVerts = PolygonUtils::fanTriangulatePolygon(building.polygons, topNormal, (ground + wallHeight), sidewalk, r, g, b, a);
+    m_vertices.insert(m_vertices.end(), roofVerts.begin(), roofVerts.end());
+
+    if (building.isSpecial) {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<int> countDist(extraBuildingCountMin, extraBuildingCountMax);
+        int extraCount = countDist(gen);
+
+        float currentGround = ground + wallHeight;
+
+        // Start from the building's original polygon
+        vector<Point> topPolygon = building.polygons;
+
+        for (int i = 0; i < extraCount; ++i) { //extraCount
+        
+            // Scale down the top polygon for a tower-like effect
+            float area = PolygonUtils::calculatePolygonArea(topPolygon);
+            if(area * extraBuildingScaleFactor < 5.0f) {
+        cout << "Skipping building: Area too small after scaling.\n";return;}
+            topPolygon = PolygonUtils::scalePolygon(topPolygon, extraBuildingScaleFactor);
+
+            Building extraBuilding;
+            extraBuilding.polygons = topPolygon;
+            extraBuilding.height = building.height * extraBuildingHeightMultiplier; // taller than original
+            extraBuilding.textureLayer = building.textureLayer; 
+            extraBuilding.isSpecial = false; 
+            extraBuilding.district = building.district; // same district and style
+
+            cout << "Building #" << i + 1 << " Details After Scaling:\n";
+            cout << "  Scaled Area: " << PolygonUtils::calculatePolygonArea(topPolygon) << "\n";
+            cout << "  Scaled Top Polygon Vertices:\n";
+            for (const auto& point : topPolygon) {
+                cout << "    (" << point.x << ", " << point.y << ")\n";
+            }
+            cout << "  Height: " << extraBuilding.height << "\n";
+            cout << "  Texture Layer: " << extraBuilding.textureLayer << "\n";
+            cout << "  District: " << extraBuilding.district << "\n";
+            cout << "  Is Special: " << (extraBuilding.isSpecial ? "Yes" : "No") << "\n";
+
+            
+            cout<<"A: "<<i<<endl;
+            // Each extra building sits on top of the last
+            BuildingToVerticies(extraBuilding, m_vertices, currentGround);
+            cout<<"B: "<<i<<endl;
+            currentGround += extraBuilding.height; // Increase ground for the next building
+        }
+    }
+}
+
 void CityGen::sweepToBlocks()
 {
     m_blocks.clear();
     
     m_blocks.resize(m_chunks.size());
     m_buildings.clear();
-    vector<string> x;
+    
     m_chunks = m_voronoiCells;
 
     for (size_t i = 0; i < m_chunks.size(); i++) {
@@ -68,6 +240,8 @@ void CityGen::sweepToBlocks()
     }
     
     for (size_t i = 0; i < m_chunks.size(); i++) {
+        //choose chunk district based on a random point within min and max
+        //
         vector<Point> x = m_chunks[i];
         random_device rd;
         mt19937 gen(rd());
@@ -164,7 +338,8 @@ void CityGen::sweepToBlocks()
                     }
                     else
                     {
-                        m_buildings.push_back(currPolygon);
+                        Building b = determineBuildingDetails(currPolygon);
+                        m_buildings.push_back(b);
                     }
                 }
                 else if(keepPositiveSide)
@@ -176,7 +351,8 @@ void CityGen::sweepToBlocks()
                     if(!negative.empty()) {
                         if(PolygonUtils::calculatePolygonArea(negative) > minPolygonArea)
                         {
-                            m_buildings.push_back(negative);
+                            Building b = determineBuildingDetails(negative);
+                            m_buildings.push_back(b);
                         }
                     }
                 }
@@ -189,7 +365,8 @@ void CityGen::sweepToBlocks()
                     if(!positive.empty()){
                         if(PolygonUtils::calculatePolygonArea(positive) > minPolygonArea)
                         {
-                            m_buildings.push_back(positive);
+                            Building b = determineBuildingDetails(positive);
+                            m_buildings.push_back(b);
                         }
                     }
                 }
@@ -223,100 +400,20 @@ void CityGen::buildVertexData() {
     m_vertices.clear();
 
     for (size_t i = 0; i < m_buildings.size(); i++) {
-        vector<Point> x = m_buildings[i];
-        m_buildings[i] = PolygonUtils::scalePolygon(x, 0.85f);
+        vector<Point> x = m_buildings[i].polygons;
+        m_buildings[i].polygons = PolygonUtils::scalePolygon(x, 0.85f);
     }
 
-    vector<GLubyte> colors = {
-    255, 0, 0,
-    0, 255, 0,
-    0, 0, 255,
-    255, 255, 0,
-    255, 0, 255,
-    0, 255, 255,
-    191, 0, 191,
-    255, 140, 0,
-    0, 200, 0,
-    200, 200, 200
-    };
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> heightDist(30.0f, 100.0f); 
-    std::uniform_int_distribution<int> chanceDist(1, 30);
-
-    vec3 topNormal = vec3(0.0f,1.0f,0.0f);
-    vector<Vertex> topVertices;
-    for (size_t i = 0; i < m_buildings.size(); ++i) {
-        topVertices.clear();
-        const vector<Point>& cell = m_buildings[i];
-
-        float wallHeight = (chanceDist(gen) == 1) ? 120.0f : heightDist(gen);
-        GLubyte r = colors[(i * 3) % colors.size()];
-        GLubyte g = colors[(i * 3 + 1) % colors.size()];
-        GLubyte b = colors[(i * 3 + 2) % colors.size()];
-        GLubyte a = 255;
-        float buildingLayer = wall2;
-        if(i % 2 == 0) {
-            buildingLayer = wall;
-        }
-
-        float texWidth = 10.0f; 
-        float texHeight = 10.0f;
-
-        for (size_t j = 0; j < cell.size(); ++j) {
-            Point p1 = cell[j];
-            Point p2 = cell[(j + 1) % cell.size()];
-            float width = (float)PolygonUtils::distanceBetweenPoints(p1,p2);
-            float tileU = width / texWidth;
-            float tileV = wallHeight / texHeight;
-            glm::vec3 normal = calculateQuadNormal(p1, p2);
-
-            Vertex v1 = { (GLfloat)p1.x, 0.0f, (GLfloat)p1.y, r, g, b, a,
-            0.0f,0.0f,
-            buildingLayer,
-            normal.x, normal.y, normal.z};
-            Vertex v2 = { (GLfloat)p2.x, 0.0f, (GLfloat)p2.y, r, g, b, a,
-            tileU,0.0f,
-            buildingLayer,
-            normal.x, normal.y, normal.z};
-
-            Vertex top1 = { (GLfloat)p1.x, wallHeight, (GLfloat)p1.y, r, g, b, a,
-            0.0f,tileV,
-            buildingLayer,
-            normal.x, normal.y, normal.z};
-            Vertex top2 = { (GLfloat)p2.x, wallHeight, (GLfloat)p2.y, r, g, b, a,
-            tileU,tileV,
-            buildingLayer,
-            normal.x, normal.y, normal.z};
-
-            m_vertices.push_back(v1);
-            m_vertices.push_back(top1);
-            m_vertices.push_back(v2);
-
-            m_vertices.push_back(top1);
-            m_vertices.push_back(top2);
-            m_vertices.push_back(v2);
-
-            topVertices.push_back(top1);
-        }
-        if(topVertices.empty()){continue;}
-        
-        auto roofVerts = PolygonUtils::fanTriangulatePolygon(cell, topNormal, wallHeight, 3.0f, r, g, b, a); //3 = sidewalk
-        m_vertices.insert(m_vertices.end(), roofVerts.begin(), roofVerts.end());
+    for(auto& b : m_buildings){
+        BuildingToVerticies(b, m_vertices, 0.0f);
     }
 
-    m_lines.clear();
+    m_lines.clear(); //Roads
     for (size_t i = 0; i < m_voronoiCells.size(); ++i) {
-        const vector<Point>& cell = m_voronoiCells[i];     
-        GLubyte r = 255;
-        GLubyte g = 255;
-        GLubyte b = 255;
-        GLubyte a = 255;
+        const vector<Point>& cell = m_voronoiCells[i];
         for (size_t j = 0; j < cell.size(); ++j) {
             Point p1 = cell[j];
-            Point p2 = cell[(j + 1) % cell.size()];
-            // Add road decals
+            Point p2 = cell[(j + 1) % cell.size()]; 
             DrawRoad::addRoadDecals(m_lines, p1, p2, sidewalk,
                                      PolygonUtils::distanceBetweenPoints,
                                      GeometryUtils::getDirectionVector,
@@ -324,41 +421,53 @@ void CityGen::buildVertexData() {
         }
     }
 
-    for (auto &cell : m_voronoiCells) {
+    for (auto &cell : m_voronoiCells) { //Sidewalk
         if (cell.size() < 3) continue;
         vector<Point> sidewalkPoly = PolygonUtils::scalePolygon(cell, 0.87f);
-        GLubyte r=200,g=200,b=200,a=255;
-        auto sidewalkVerts = PolygonUtils::fanTriangulatePolygon(sidewalkPoly, vec3((0.0f,1.0f,0.0f)), 0.01f, 3.0f, r, g, b, a);
+        auto sidewalkVerts = PolygonUtils::fanTriangulatePolygon(sidewalkPoly, vec3((0.0f,1.0f,0.0f)), 0.01f, 3.0f, 255,255,255,255);
         m_vertices.insert(m_vertices.end(), sidewalkVerts.begin(), sidewalkVerts.end());
     }
 
     m_numVertices = (int)m_vertices.size();
-    pushVertexData(m_vertexBuffer,m_vertexDecl,m_vertices);
+    pushVertexData(m_vertexBuffer,m_vertexDecl,m_vertices); 
     m_numLines = (int)m_lines.size();
     pushVertexData(m_lineBuffer,m_lineDecl,m_lines);
 
-    m_arrayTexture = wolf::TextureManager::CreateAutoArrayTexture({
-        "data/building1.tga",
+    m_arrayTexture = wolf::TextureManager::CreateAutoArrayTexture
+    ({  "data/building1.tga",
         "data/building2.tga",
         "data/building3.tga",
-        "data/brickFloor.tga",
         "data/building1Windows.tga",
         "data/building2Windows.tga",
-        "data/asphalt.tga",
-    });
+        "data/building3Windows.tga",
+        "data/ambigiousRoof.tga",
+        "data/brickFloor.tga",
+        "data/asphalt.tga" });
 
     if(!m_arrayTexture) {
-        printf("Error: Array texture creation failed.\n");
-        return;
+        printf(" Array texture creation failed\n"); 
     }
 }
 
 void CityGen::generate(GLuint program) {
     m_program = wolf::ProgramManager::CreateProgram("data/cube.vsh", "data/cube.fsh");
     unsigned int seed = (unsigned int)time(nullptr);
+
+    { //District point.
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<double> distX(minX, maxX);
+        std::uniform_real_distribution<double> distY(minY, maxY);
+        districtCenter = {distX(gen), distY(gen)};
+        
+        double width = maxX - minX;
+        double height = maxY - minY;
+        districtRadius = (float)((width + height)/2.0); 
+    }
+
     m_sites = Voronoi::generateSites(numSites, seed, minX, maxX, minY, maxY);
     Voronoi::computeVoronoiDiagram(m_sites, m_voronoiCells, minX, maxX, minY, maxY);
-    // computeChunks(); // Left commented as per original code
+    // computeChunks();
     sweepToBlocks();
     buildVertexData();
 }
@@ -407,13 +516,15 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     m_program->SetUniform("u_texture", 0);
     m_arrayTexture->Bind(0);
 
-    float hours = fmod(m_timer*2,24.0f);
-    float normalizedTime = hours / 24.0f;
+    float hours = fmod(m_timer*2,cyceLength);
+    float normalizedTime = hours / cyceLength;
+
     float angle = (normalizedTime * 360.0f) - 180.0f;
     float rad = glm::radians(angle);
     rad += glm::radians(90.0f);
     glm::vec3 lightDir(cos(rad), sin(rad), 0.0f);
     float elevation = sin(rad);
+
     float dayFactor = glm::clamp(elevation,0.0f,1.0f);
     float ambientStrength = 0.2f + 0.2f * dayFactor; 
     glm::vec3 dynamicAmbient(ambientStrength);
@@ -439,7 +550,7 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     glDrawArrays(GL_TRIANGLES, 0, m_numVertices);
 
     m_lineDecl->Bind();
-    glDrawArrays(GL_LINES, 0, m_numLines);
+    glDrawArrays(GL_LINES, 0, m_numLines); //crosswalk lines
     glBindVertexArray(0);
     glUseProgram(0);
 }

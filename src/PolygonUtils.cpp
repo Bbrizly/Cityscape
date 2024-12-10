@@ -163,10 +163,34 @@ std::vector<Vertex> PolygonUtils::fanTriangulatePolygon(const std::vector<Point>
 {
     std::vector<Vertex> result;
     if (polygon.size() < 3) return result;
+
     double minX = std::numeric_limits<double>::max();
     double maxX = -std::numeric_limits<double>::max();
     double minZ = std::numeric_limits<double>::max();
     double maxZ = -std::numeric_limits<double>::max();
+
+    for (const auto& p : polygon) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minZ) minZ = p.y;
+        if (p.y > maxZ) maxZ = p.y;
+    }
+
+    double dx = (maxX - minX) / 4.0;
+    double dz = (maxZ - minZ) / 4.0;
+    if (dx < 1e-9) dx = 1.0; 
+    if (dz < 1e-9) dz = 1.0;
+
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    // std::uniform_real_distribution<float> scaleDist(uvMinScale, uvMaxScale);
+    std::uniform_real_distribution<float> rotDist(0.0f, 360.0f);
+
+    float angle = glm::radians(rotDist(gen));
+
+    float ca = cos(angle);
+    float sa = sin(angle);
 
     std::vector<Vertex> tempVerts;
     tempVerts.reserve(polygon.size());
@@ -178,22 +202,20 @@ std::vector<Vertex> PolygonUtils::fanTriangulatePolygon(const std::vector<Point>
         v.z = (GLfloat)p.y;
         v.r = r; v.g = g; v.b = b; v.a = a;
         v.nx = normal.x; v.ny = normal.y; v.nz = normal.z;
-        if (p.x < minX) minX = p.x;
-        if (p.x > maxX) maxX = p.x;
-        if (p.y < minZ) minZ = p.y;
-        if (p.y > maxZ) maxZ = p.y;
         v.layer = layer;
+
+        // UV based on bounding box:
+        float u = (GLfloat)((p.x - minX)/dx);
+        float vcoord = (GLfloat)((p.y - minZ)/dz);
+
+        // Rotate
+        float uRot = u * ca - vcoord * sa;
+        float vRot = u * sa + vcoord * ca;
+
+        v.u = uRot;
+        v.v = vRot;
+
         tempVerts.push_back(v);
-    }
-
-    float uRange = (float)(maxX - minX);
-    float vRange = (float)(maxZ - minZ);
-    if (uRange < 1e-9f) uRange = 1.0f;
-    if (vRange < 1e-9f) vRange = 1.0f;
-
-    for (auto &vert : tempVerts) {
-        vert.u = (vert.x - (GLfloat)minX)/uRange;
-        vert.v = (vert.z - (GLfloat)minZ)/vRange;
     }
 
     for (size_t i = 1; i < polygon.size() - 1; i++) {
@@ -201,5 +223,6 @@ std::vector<Vertex> PolygonUtils::fanTriangulatePolygon(const std::vector<Point>
         result.push_back(tempVerts[i+1]);
         result.push_back(tempVerts[i]);
     }
+
     return result;
 }

@@ -15,22 +15,31 @@ uniform float u_windowLitFactor;       // Controls the probability of windows be
 float windowMask = 0.0;          // Initialize window mask
 float vcolorMask = 1.0;          // Mask for v_color influence (1.0 = full influence, 0.0 = no influence)
 
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+} 
+
 void main()
 {
     vec4 baseColor = texture(u_texture, vec3(v_uv1, v_layer));
     vec3 finalColor = baseColor.rgb; // Start with the building texture color
+    float brightnessFactor = 0.0f;
     bool shouldLight = false;
 
     switch (int(v_layer))
     {
-        case 0: case 1: //building 0 and 1 [+ 4] = textures 4 and 5
+        case 0: case 1: case 2: //building 0 and 1 [+ 4] = textures 4 and 5
             windowMask = texture(u_texture, vec3(v_uv1, v_layer + 4)).r; // Window mask from layer 4
 
             //Curtain logic
             vec2 scaledUV = floor(v_uv1 * ((v_layer + 1.0f) * 5)); // Scale factor for window "cells
 
             float randVal = fract(sin(dot(scaledUV, vec2(12.9898, 78.233))) * 43758.5453);
+
+
+            brightnessFactor = 0.5 + randVal * 0.5; // Brightness range: [0.5, 1.0]
             
+
             shouldLight = (windowMask > 0.5) && (randVal < u_windowLitFactor);
 
             vcolorMask = 1.0 - step(0.5, windowMask); // vcolorMask = 0.0 in window areas, 1.0 elsewhere
@@ -41,8 +50,11 @@ void main()
     {
         vec3 windowColor = vec3(1.0, 1.0, 0.8); // Window light color (soft yellow)
 
+        brightnessFactor = 0 + 0.4 * hash(v_uv1); // Brightness varies between 0.8 and 1.2
+
+        
         // Override the final color with the bright window light
-        finalColor = mix(baseColor.rgb, windowColor, 0.4); // Stronger mix for bright windows
+        finalColor = mix(baseColor.rgb, windowColor, brightnessFactor); // Stronger mix for bright windows
     }
     else
     {
