@@ -28,6 +28,7 @@ private:
     glm::vec3 m_up;        // Up vector
     float m_yaw;           // Rotation around the Y-axis
     float m_pitch;         // Rotation around the X-axis
+    bool m_invertY;
 
     float m_normalSpeed = 2.0f;
     float m_SprintSpeed = 5.0f;

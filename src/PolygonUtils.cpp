@@ -175,9 +175,14 @@ std::vector<Vertex> PolygonUtils::fanTriangulatePolygon(const std::vector<Point>
         if (p.y < minZ) minZ = p.y;
         if (p.y > maxZ) maxZ = p.y;
     }
+    float div = 4.0f;
+    if(layer == 7) //if layer is sidewalk, add more divisions for scalability
+    {
+        div = 10.0f;
+    }
 
-    double dx = (maxX - minX) / 4.0;
-    double dz = (maxZ - minZ) / 4.0;
+    double dx = (maxX - minX) / div;
+    double dz = (maxZ - minZ) / div;
     if (dx < 1e-9) dx = 1.0; 
     if (dz < 1e-9) dz = 1.0;
 

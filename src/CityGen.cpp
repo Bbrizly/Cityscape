@@ -9,7 +9,45 @@
 #include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <stb_image.h>
-using namespace std;using namespace glm;
+using namespace std; using namespace glm;
+
+static vector<array<GLubyte,3>> industrialColors = {
+    {200,200,200}, // Light Gray
+    {180,180,180}, // Mid Gray
+    {220,220,220}, // Very Light Gray
+    {160,160,160}, // Slightly Dark Gray
+    {170,170,190}, // Gray with a hint of blue
+    {130,130,150}, // Darker steel blue
+    {210,210,230}, // Very pale blue-gray
+    {100,100,100}  // Dark Gray
+};
+
+// Commercial colors (vibrant oranges, some earthy tones):
+// Orange, amber, light browns, etc.
+static vector<array<GLubyte,3>> commercialColors = {
+    {255,165,0},   // Orange
+    {255,140,0},   // Dark Orange
+    {255,128,0},   // Pumpkin Orange
+    {230,120,0},   // Burnt Orange
+    {255,180,50},  // Light Orange
+    {200,230,200}, // Pale greenish
+    {210,180,140}, // Tan
+    {220,200,200}, // Off-white pinkish
+    {200,220,240}, // Light bluish
+    {240,220,200}  // Cream
+};
+
+// Residential colors (homey feeling: pastels and warm tones):
+static vector<array<GLubyte,3>> residentialColors = {
+    {200,230,200}, // Light pastel green
+    {210,180,140}, // Tan (wood-like)
+    {220,200,200}, // Light warm gray
+    {200,220,240}, // Soft baby blue
+    {240,220,200}, // Creamy
+    {255,225,200}, // Light peach
+    {230,230,210}, // Warm off-white
+    {220,210,180}, // Light sand
+};
 
 void CityGen::computeChunks() {
     m_chunks = m_voronoiCells;
@@ -65,30 +103,40 @@ Building CityGen::determineBuildingDetails(const vector<Point>& polygon)
     }
     Point centroid = PolygonUtils::getCentroid(polygon);
     double dist = PolygonUtils::distanceBetweenPoints(centroid, districtCenter);
-
     float normalizedDist = (float)(dist / districtRadius);
     normalizedDist = std::clamp(normalizedDist, 0.0f, 1.0f);
 
-    float closeThreshold = districtRadius / 6.0f;
     float industrialThreshold = districtRadius / 3.0f;
     float commercialThreshold = (2.0f * districtRadius) / 3.0f; 
 
     std::random_device rd;
     std::mt19937 gen(rd());
-    int stories = 1;
+    int baseStories = 1;
+    float heightFactor = 1.0f;
 
     if (dist < industrialThreshold) {
         b.district = District::Industrial;
         b.textureLayer = 2.0f; // Industrial
-        SeamlessAddition = baseAddition2;
+        // SeamlessAddition = baseAddition2;
+        b.height += baseAddition2;
 
         std::uniform_int_distribution<int> storyDist(IndustrialMinStories, IndustrialMaxStories);
-        stories = storyDist(gen);
+        baseStories = storyDist(gen);
+
+        // Height incorporates distance:
+        // Closer => taller. If normalizedDist=0 (very close), height ~ double.
+        // If normalizedDist=1 (far), normal height.
+        // heightFactor = 2.0 - normalizedDist (linearly scales from 2 at center to 1 at boundary)
+        heightFactor = 2.0f - (float)(dist / industrialThreshold);//normalizedDist;
+        // b.height = stories * baseStoryHeight * heightFactor;
+        
+        std::uniform_int_distribution<size_t> colorDist(0, industrialColors.size()-1);
+        auto c = industrialColors[colorDist(gen)];
+        b.r = c[0]; b.g = c[1]; b.b = c[2];
 
         // Determine if the building is special (1 in 10)
         std::uniform_real_distribution<float> chanceDist(0.0f, 1.0f);
-        float chance = chanceDist(gen);
-        if (chance < specialBuildingChance) {
+        if (chanceDist(gen) < specialBuildingChance) {
             b.isSpecial = true;
         }
     }
@@ -97,7 +145,6 @@ Building CityGen::determineBuildingDetails(const vector<Point>& polygon)
         std::uniform_real_distribution<float> textureChance(0.0f, 1.0f);
         if(textureChance(gen) <0.5f)
         {
-            
             b.textureLayer =  1.0f;
         }else
         {
@@ -108,17 +155,41 @@ Building CityGen::determineBuildingDetails(const vector<Point>& polygon)
         if (dist < commercialThreshold) {
             b.district = District::Commercial;
             std::uniform_int_distribution<int> storyDist(CommercialMinStories, CommercialMaxStories);
-            stories = storyDist(gen);
+            baseStories = storyDist(gen);
+            // b.height = stories * baseStoryHeight;
+
+            float range = commercialThreshold - industrialThreshold;
+            float distFromInd = (float)(dist - industrialThreshold);
+            heightFactor = 1.8f - (0.8f * (distFromInd / range));
+
+            // Pick a random commercial color
+            std::uniform_int_distribution<size_t> colorDist(0, commercialColors.size()-1);
+            auto c = commercialColors[colorDist(gen)];
+            b.r = c[0]; b.g = c[1]; b.b = c[2];
         }
         else { // Residential
             b.district = District::Residential;
             std::uniform_int_distribution<int> storyDist(ResidentialMinStories, ResidentialMaxStories);
-            stories = storyDist(gen);
+            baseStories = storyDist(gen);
+            // b.height = stories * baseStoryHeight;
+
+            float range = districtRadius - commercialThreshold;
+            float distFromInd = (float)(dist - commercialThreshold);
+            heightFactor = 1.5f - (0.5f * (distFromInd / range));
+            
+            // Pick a random residential color
+            std::uniform_int_distribution<size_t> colorDist(0, residentialColors.size()-1);
+            auto c = residentialColors[colorDist(gen)];
+            b.r = c[0]; b.g = c[1]; b.b = c[2];
         }
     }
     
-    b.height = (baseStoryHeight * stories) + SeamlessAddition;
+    float adjustedStories = baseStories * heightFactor;
+    int finalStories = (int)round(adjustedStories);
+    finalStories = std::max(finalStories, 1); // at least one story
+    b.height = (finalStories * baseStoryHeight) + SeamlessAddition;
 
+    // b.height = (baseStoryHeight * baseStories * heightFactor) + SeamlessAddition;
     return b;
 }
 
@@ -130,18 +201,12 @@ void CityGen::BuildingToVerticies(const Building& building, vector<Vertex>& m_ve
 
     // Choose colors arbitrarily or based on district
     GLubyte r,g,b,a;
-    a = 255;
     r = building.r;
     g = building.g;
     b = building.b;
+    a = 255;
 
-    switch(building.district) {
-        case District::Industrial: r = 200; g = 200; b = 200; break;
-        case District::Commercial: r = 0; g = 255; b = 0; break;
-        case District::Residential: r = 0; g = 0; b = 255; break;
-    }
-
-    float wallHeight = building.height;
+    float wallHeight = building.isSpecial ? building.height / 2 : building.height;
     float buildingLayer = building.textureLayer;
     vec3 topNormal = vec3(0.0f,1.0f,0.0f);
     float texWidth = 10.0f; 
@@ -186,7 +251,7 @@ void CityGen::BuildingToVerticies(const Building& building, vector<Vertex>& m_ve
     }
 
     // Create roof
-    auto roofVerts = PolygonUtils::fanTriangulatePolygon(building.polygons, topNormal, (ground + wallHeight), sidewalk, r, g, b, a);
+    auto roofVerts = PolygonUtils::fanTriangulatePolygon(building.polygons, topNormal, (ground + wallHeight), roof, r, g, b, a);
     m_vertices.insert(m_vertices.end(), roofVerts.begin(), roofVerts.end());
 
     if (building.isSpecial) {
@@ -202,7 +267,6 @@ void CityGen::BuildingToVerticies(const Building& building, vector<Vertex>& m_ve
 
         for (int i = 0; i < extraCount; ++i) { //extraCount
         
-            // Scale down the top polygon for a tower-like effect
             float area = PolygonUtils::calculatePolygonArea(topPolygon);
             if(area * extraBuildingScaleFactor < 5.0f) {
         cout << "Skipping building: Area too small after scaling.\n";return;}
@@ -210,27 +274,30 @@ void CityGen::BuildingToVerticies(const Building& building, vector<Vertex>& m_ve
 
             Building extraBuilding;
             extraBuilding.polygons = topPolygon;
-            extraBuilding.height = building.height * extraBuildingHeightMultiplier; // taller than original
+            extraBuilding.height = building.height/2 * extraBuildingHeightMultiplier; // taller than original
             extraBuilding.textureLayer = building.textureLayer; 
             extraBuilding.isSpecial = false; 
             extraBuilding.district = building.district; // same district and style
+            extraBuilding.r = r;
+            extraBuilding.g = g;
+            extraBuilding.b = b;
 
-            cout << "Building #" << i + 1 << " Details After Scaling:\n";
-            cout << "  Scaled Area: " << PolygonUtils::calculatePolygonArea(topPolygon) << "\n";
-            cout << "  Scaled Top Polygon Vertices:\n";
-            for (const auto& point : topPolygon) {
-                cout << "    (" << point.x << ", " << point.y << ")\n";
-            }
-            cout << "  Height: " << extraBuilding.height << "\n";
-            cout << "  Texture Layer: " << extraBuilding.textureLayer << "\n";
-            cout << "  District: " << extraBuilding.district << "\n";
-            cout << "  Is Special: " << (extraBuilding.isSpecial ? "Yes" : "No") << "\n";
+            // cout << "Building #" << i + 1 << " Details After Scaling:\n";
+            // cout << "  Scaled Area: " << PolygonUtils::calculatePolygonArea(topPolygon) << "\n";
+            // cout << "  Scaled Top Polygon Vertices:\n";
+            // for (const auto& point : topPolygon) {
+            //     cout << "    (" << point.x << ", " << point.y << ")\n";
+            // }
+            // cout << "  Height: " << extraBuilding.height << "\n";
+            // cout << "  Texture Layer: " << extraBuilding.textureLayer << "\n";
+            // cout << "  District: " << extraBuilding.district << "\n";
+            // cout << "  Is Special: " << (extraBuilding.isSpecial ? "Yes" : "No") << "\n";
 
             
-            cout<<"A: "<<i<<endl;
+            // cout<<"A: "<<i<<endl;
             // Each extra building sits on top of the last
             BuildingToVerticies(extraBuilding, m_vertices, currentGround);
-            cout<<"B: "<<i<<endl;
+            // cout<<"B: "<<i<<endl;
             currentGround += extraBuilding.height; // Increase ground for the next building
         }
     }
@@ -435,9 +502,49 @@ void CityGen::buildVertexData() {
     for (auto &cell : m_voronoiCells) { //Sidewalk
         if (cell.size() < 3) continue;
         vector<Point> sidewalkPoly = PolygonUtils::scalePolygon(cell, 0.87f);
-        auto sidewalkVerts = PolygonUtils::fanTriangulatePolygon(sidewalkPoly, vec3((0.0f,1.0f,0.0f)), 0.01f, 3.0f, 255,255,255,255);
+        auto sidewalkVerts = PolygonUtils::fanTriangulatePolygon(sidewalkPoly, vec3((0.0f,1.0f,0.0f)), 0.1f, sidewalk, 255,255,255,255);
         m_vertices.insert(m_vertices.end(), sidewalkVerts.begin(), sidewalkVerts.end());
     }
+
+    {// GROUND FLOOR
+        int div = 15;
+        float minUVX = minX / div;
+        float maxUVX = maxX / div;
+        float minUVY = minY / div;
+        float maxUVY = maxY / div;
+        Point bottomLeft = { minX, minY };
+        Point bottomRight = { maxX, minY };
+        Point topLeft = { minX, maxY };
+        Point topRight = { maxX, maxY };
+        float ground = 0.0f;
+        float quadLayer = asphalt;
+        glm::vec3 groundNormal = vec3(0.0f, 1.0f, 0.0f);
+        GLubyte a,r,g,b = 255;
+        int sex = 0;
+        r=sex;g=sex;b=sex;a=255;
+        
+        Vertex bl = { (GLfloat)bottomLeft.x, ground, (GLfloat)bottomLeft.y, r, g, b, a,
+            minUVX, minUVY, quadLayer, groundNormal.x, groundNormal.y, groundNormal.z };
+
+        Vertex br = { (GLfloat)bottomRight.x, ground, (GLfloat)bottomRight.y, r, g, b, a,
+            maxUVX, minUVY, quadLayer, groundNormal.x, groundNormal.y, groundNormal.z };
+
+        Vertex tl = { (GLfloat)topLeft.x, ground, (GLfloat)topLeft.y, r, g, b, a,
+            minUVX, maxUVY, quadLayer, groundNormal.x, groundNormal.y, groundNormal.z };
+
+        Vertex tr = { (GLfloat)topRight.x, ground, (GLfloat)topRight.y, r, g, b, a,
+            maxUVX, maxUVY, quadLayer, groundNormal.x, groundNormal.y, groundNormal.z };
+
+        // Add quad vertices (two triangles)
+        m_vertices.push_back(bl);
+        m_vertices.push_back(tl);
+        m_vertices.push_back(br);
+
+        m_vertices.push_back(tl);
+        m_vertices.push_back(tr);
+        m_vertices.push_back(br);
+    }
+
 
     m_numVertices = (int)m_vertices.size();
     pushVertexData(m_vertexBuffer,m_vertexDecl,m_vertices); 
@@ -461,7 +568,7 @@ void CityGen::buildVertexData() {
 }
 
 void CityGen::generate(GLuint program) {
-    m_program = wolf::ProgramManager::CreateProgram("data/cube.vsh", "data/cube.fsh");
+    m_program = wolf::ProgramManager::CreateProgram("data/mainShader.vsh", "data/mainShader.fsh");
     unsigned int seed = (unsigned int)time(nullptr);
 
     { //District point.

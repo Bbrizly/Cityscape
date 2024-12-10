@@ -37,7 +37,7 @@ void main()
             float randVal = fract(sin(dot(scaledUV, vec2(12.9898, 78.233))) * 43758.5453);
 
 
-            brightnessFactor = 0.5 + randVal * 0.5; // Brightness range: [0.5, 1.0]
+            //brightnessFactor = 0.5 + randVal * 0.5; // Brightness range: [0.5, 1.0]
             
 
             shouldLight = (windowMask > 0.5) && (randVal < u_windowLitFactor);
@@ -50,11 +50,11 @@ void main()
     {
         vec3 windowColor = vec3(1.0, 1.0, 0.8); // Window light color (soft yellow)
 
-        brightnessFactor = 0 + 0.4 * hash(v_uv1); // Brightness varies between 0.8 and 1.2
+        //brightnessFactor = 0 + 0.4 * hash(v_uv1); // Brightness varies between 0.8 and 1.2
 
         
         // Override the final color with the bright window light
-        finalColor = mix(baseColor.rgb, windowColor, brightnessFactor); // Stronger mix for bright windows
+        finalColor = mix(baseColor.rgb, windowColor, 0.4); // Stronger mix for bright windows
     }
     else
     {

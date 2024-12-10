@@ -52,9 +52,10 @@ private:
     float wall = 0;
     float wall2 = 1;
     float wall3 = 2;
-    float windows = 4;
-    float windows2 = 5;
-    float windows3 = 6;
+    float windows = 3;
+    float windows2 = 4;
+    float windows3 = 5;
+    float roof = 6;
     float sidewalk = 7;
     float asphalt = 8;
 
@@ -85,14 +86,14 @@ private:
     Point districtCenter;
     float districtRadius = 0.0f;
     
-    const int IndustrialMinStories = 10;
-    const int IndustrialMaxStories = 20;
-
-    const int CommercialMinStories = 5;
-    const int CommercialMaxStories = 10;
-
     const int ResidentialMinStories = 1;
     const int ResidentialMaxStories = 5;
+
+    const int CommercialMinStories = 5;
+    const int CommercialMaxStories = 15;
+
+    const int IndustrialMinStories = 20;
+    const int IndustrialMaxStories = 30;
 
     const float baseAddition0 = 0.8f;    // added to the top to make it seamlesss
     const float baseAddition2 = 0.6f;
@@ -105,8 +106,6 @@ private:
     const int extraBuildingCountMax = 4;                // Maximum extra buildings
     const float extraBuildingScaleFactor = 0.8f;         // Scale factor for extra buildings
     const float extraBuildingHeightMultiplier = 0.5f;    // Height multiplier for extra buildings
-
-
 
     //Data
     vector<Vertex> m_vertices;
