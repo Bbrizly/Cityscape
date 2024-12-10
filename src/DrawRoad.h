@@ -2,6 +2,7 @@
 #include "GeometryUtils.h"
 #include "Vertex.h"
 #include <functional>
+#include <algorithm>
 #include <vector>
 
 class DrawRoad {

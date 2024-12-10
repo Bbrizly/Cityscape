@@ -4,6 +4,7 @@
 #include "GeometryUtils.h"
 #include <random>
 #include "Vertex.h"
+#include "GeometryUtils.h"
 #include <glm/glm.hpp>
 
 class PolygonUtils {

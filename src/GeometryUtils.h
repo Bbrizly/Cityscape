@@ -2,9 +2,7 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
-
-struct Point { double x, y; };
-struct Line { double a, b, c; };
+#include "Types.h"
 
 class GeometryUtils {
 public:

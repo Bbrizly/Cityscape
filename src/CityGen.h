@@ -2,31 +2,27 @@
 #include "../wolf/wolf.h"
 #include "../samplefw/Sample.h"
 #include "Vertex.h"
+#include "Types.h"
 #include "GeometryUtils.h"
 #include <vector>
 #include <GL/glew.h>
 #include <glm/glm.hpp>
+#include "BuildingGen.h"
+#include "PolygonUtils.h"
+#include "Debug.h"
+#include "Voronoi.h"
+#include "DrawRoad.h"
+#include <functional>
+#include <random>
+#include <iostream>
+#include <glm/gtc/matrix_transform.hpp>
+#include <stb_image.h>
 using namespace std; using namespace glm;
 
 class PolygonUtils;
 class Voronoi;
 class Debug;
 class DrawRoad;
-
-enum District{
-    Industrial,
-    Commercial,
-    Residential
-};
-
-struct Building {
-    vector<Point> polygons;
-    int textureLayer;
-    float height;
-    int district;
-    GLubyte r; GLubyte g; GLubyte b;
-    bool isSpecial;
-};
 
 class CityGen {
 private:
@@ -43,6 +39,9 @@ private:
     vector<vector<Point>> debugs;
     vector<vector<Point>> debugs1;
     vector<vector<Point>> debugs2;
+    
+    BuildingGen* m_buildingGen;
+    void initBuildingGenerator();
 
     bool Debug = true;
     int m_numVertices;

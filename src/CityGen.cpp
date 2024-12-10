@@ -1,14 +1,4 @@
 #include "CityGen.h"
-#include "GeometryUtils.h"
-#include "PolygonUtils.h"
-#include "Debug.h"
-#include "Voronoi.h"
-#include "DrawRoad.h"
-#include <functional>
-#include <random>
-#include <iostream>
-#include <glm/gtc/matrix_transform.hpp>
-#include <stb_image.h>
 using namespace std; using namespace glm;
 
 static vector<array<GLubyte,3>> industrialColors = {
@@ -123,106 +113,7 @@ void CityGen::computeChunks() {
 
 Building CityGen::determineBuildingDetails(const vector<Point>& polygon)
 {
-    Building b;
-    b.polygons = polygon;
-    b.isSpecial = false;
-    float SeamlessAddition = 0.0f;
-
-    float area = PolygonUtils::calculatePolygonArea(polygon);
-    if (area < minPolygonArea) { //not sure if this is gonna work
-        b.height = 0.0f;
-        return b;
-    }
-    Point centroid = PolygonUtils::getCentroid(polygon);
-    double dist = PolygonUtils::distanceBetweenPoints(centroid, districtCenter);
-    float normalizedDist = (float)(dist / districtRadius);
-    normalizedDist = std::clamp(normalizedDist, 0.0f, 1.0f);
-
-    float industrialThreshold = districtRadius / 3.0f;
-    float commercialThreshold = (2.0f * districtRadius) / 3.0f; 
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    int baseStories = 1;
-    float heightFactor = 1.0f;
-
-    if (dist < industrialThreshold) {
-        b.district = District::Industrial;
-        b.textureLayer = 2.0f; // Industrial
-        // SeamlessAddition = baseAddition2;
-        b.height += baseAddition2;
-
-        std::uniform_int_distribution<int> storyDist(IndustrialMinStories, IndustrialMaxStories);
-        baseStories = storyDist(gen);
-
-        // Height incorporates distance:
-        // Closer => taller. If normalizedDist=0 (very close), height ~ double.
-        // If normalizedDist=1 (far), normal height.
-        // heightFactor = 2.0 - normalizedDist (linearly scales from 2 at center to 1 at boundary)
-        heightFactor = 2.0f - (float)(dist / industrialThreshold);//normalizedDist;
-        // b.height = stories * baseStoryHeight * heightFactor;
-        
-        std::uniform_int_distribution<size_t> colorDist(0, industrialColors.size()-1);
-        auto c = industrialColors[colorDist(gen)];
-        b.r = c[0]; b.g = c[1]; b.b = c[2];
-
-        // Determine if the building is special (1 in 10)
-        std::uniform_real_distribution<float> chanceDist(0.0f, 1.0f);
-        if (chanceDist(gen) < specialBuildingChance) {
-            b.isSpecial = true;
-        }
-    }
-    else{
-        //randomyl choosed between commercial and residential texturess
-        std::uniform_real_distribution<float> textureChance(0.0f, 1.0f);
-        if(textureChance(gen) <0.5f)
-        {
-            b.textureLayer =  1.0f;
-        }else
-        {
-            b.textureLayer = 0.0f; //
-            SeamlessAddition = baseAddition0;
-        }
-
-        if (dist < commercialThreshold) {
-            b.district = District::Commercial;
-            std::uniform_int_distribution<int> storyDist(CommercialMinStories, CommercialMaxStories);
-            baseStories = storyDist(gen);
-            // b.height = stories * baseStoryHeight;
-
-            float range = commercialThreshold - industrialThreshold;
-            float distFromInd = (float)(dist - industrialThreshold);
-            heightFactor = 1.8f - (0.8f * (distFromInd / range));
-
-            // Pick a random commercial color
-            std::uniform_int_distribution<size_t> colorDist(0, commercialColors.size()-1);
-            auto c = commercialColors[colorDist(gen)];
-            b.r = c[0]; b.g = c[1]; b.b = c[2];
-        }
-        else { // Residential
-            b.district = District::Residential;
-            std::uniform_int_distribution<int> storyDist(ResidentialMinStories, ResidentialMaxStories);
-            baseStories = storyDist(gen);
-            // b.height = stories * baseStoryHeight;
-
-            float range = districtRadius - commercialThreshold;
-            float distFromInd = (float)(dist - commercialThreshold);
-            heightFactor = 1.5f - (0.5f * (distFromInd / range));
-            
-            // Pick a random residential color
-            std::uniform_int_distribution<size_t> colorDist(0, residentialColors.size()-1);
-            auto c = residentialColors[colorDist(gen)];
-            b.r = c[0]; b.g = c[1]; b.b = c[2];
-        }
-    }
-    
-    float adjustedStories = baseStories * heightFactor;
-    int finalStories = (int)round(adjustedStories);
-    finalStories = std::max(finalStories, 1); // at least one story
-    b.height = (finalStories * baseStoryHeight) + SeamlessAddition;
-
-    // b.height = (baseStoryHeight * baseStories * heightFactor) + SeamlessAddition;
-    return b;
+    return m_buildingGen->generateBuildingDetails(polygon, districtCenter);
 }
 
 void CityGen::BuildingToVerticies(const Building& building, vector<Vertex>& m_vertices, float ground)
@@ -231,12 +122,7 @@ void CityGen::BuildingToVerticies(const Building& building, vector<Vertex>& m_ve
         return;
     }
 
-    // Choose colors arbitrarily or based on district
-    GLubyte r,g,b,a;
-    r = building.r;
-    g = building.g;
-    b = building.b;
-    a = 255;
+    GLubyte r = building.r; GLubyte g = building.g; GLubyte b = building.b; GLubyte a = 255;
 
     float wallHeight = building.isSpecial ? building.height / 2 : building.height;
     float buildingLayer = building.textureLayer;
@@ -616,6 +502,15 @@ void CityGen::generate(GLuint program) {
         districtRadius = (float)((width + height)/2.0); 
     }
 
+    {//BuildingGen init
+        m_buildingGen = new BuildingGen(districtRadius, minPolygonArea,
+        IndustrialMinStories, IndustrialMaxStories,
+        CommercialMinStories, CommercialMaxStories,
+        ResidentialMinStories, ResidentialMaxStories,
+        baseStoryHeight, baseAddition0, baseAddition2, specialBuildingChance);
+
+    }
+
     m_sites = Voronoi::generateSites(numSites, seed, minX, maxX, minY, maxY);
     Voronoi::computeVoronoiDiagram(m_sites, m_voronoiCells, minX, maxX, minY, maxY);
     // computeChunks();
@@ -648,6 +543,10 @@ void CityGen::deGenerate() {
     m_sites.clear();
     m_voronoiCells.clear();
     m_buildings.clear();
+    if (m_buildingGen) {
+        delete m_buildingGen;
+        m_buildingGen = nullptr;
+    }
 }
 
 void CityGen::reGenerate() {

@@ -1,6 +1,4 @@
 #include "DrawRoad.h"
-#include <functional>
-#include <algorithm>
 
 void DrawRoad::drawCrosswalk(std::vector<Vertex>& m_lines, Point base, Point direction, float lineLength, float spacing, float lineHeight, float sidewalk) {
     GLubyte r = 255, g = 255, b = 255, a = 255;

@@ -1,5 +1,4 @@
 #include "Debug.h"
-#include "GeometryUtils.h"
 
 void Debug::addDebug1(std::vector<std::vector<Point>>& debugs1, Point p)
 {
