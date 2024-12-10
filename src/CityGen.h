@@ -59,7 +59,7 @@ private:
     float asphalt = 8;
 
     // Voronoi diagram parameters
-    const int numSites = 25;
+    const int numSites = 30;
     float moveAmount = 25.0f;
     float maxMoveAmount = 50.0f;
     float minMoveAmount = 40.0f;
@@ -69,10 +69,32 @@ private:
     float minEdge = 2.0f;
     float minEdge2 = 0.5f;
 
-    const double minX = -500.0;
-    const double maxX = 500.0;
-    const double minY = -400.0;
-    const double maxY = 400.0;
+    const double minX = -800.0;
+    const double maxX = 800.0;
+    const double minY = -700.0;
+    const double maxY = 700.0;
+    
+    const int ResidentialMinStories = 2;
+    const int ResidentialMaxStories = 8;
+
+    const int CommercialMinStories = 8;
+    const int CommercialMaxStories = 15;
+
+    const int IndustrialMinStories = 20;
+    const int IndustrialMaxStories = 35;
+
+    const float baseAddition0 = 0.8f;    // added to the top to make it seamlesss
+    const float baseAddition2 = 0.5f;
+    const float baseStoryHeight = 10.0f;    // Height per story
+    //normally is 10 for 618 x 600 but im 10.8 for extra seamlessness in texturing 
+
+    // Special Industrial Building
+    const float specialBuildingChance = 0.1f;           // 10% chance
+    const int extraBuildingCountMin = 3;                // Minimum extra buildings
+    const int extraBuildingCountMax = 4;                // Maximum extra buildings
+    const float extraBuildingScaleFactor = 0.8f;         // Scale factor for extra buildings
+    const float extraBuildingHeightMultiplier = 0.5f;    // Height multiplier for extra buildings
+
 
     float cyceLength = 48.0f;
     const double epsilon = 1e-9;
@@ -85,40 +107,17 @@ private:
     vector<Building> m_buildings;
     Point districtCenter;
     float districtRadius = 0.0f;
-    
-    const int ResidentialMinStories = 2;
-    const int ResidentialMaxStories = 8;
-
-    const int CommercialMinStories = 8;
-    const int CommercialMaxStories = 15;
-
-    const int IndustrialMinStories = 20;
-    const int IndustrialMaxStories = 35;
-
-    const float baseAddition0 = 0.8f;    // added to the top to make it seamlesss
-    const float baseAddition2 = 0.6f;
-    const float baseStoryHeight = 10.0f;    // Height per story
-    //normally is 10 for 618 x 600 but im 10.8 for extra seamlessness in texturing 
-
-    // Special Industrial Building Controls
-    const float specialBuildingChance = 0.1f;           // 10% chance
-    const int extraBuildingCountMin = 3;                // Minimum extra buildings
-    const int extraBuildingCountMax = 4;                // Maximum extra buildings
-    const float extraBuildingScaleFactor = 0.8f;         // Scale factor for extra buildings
-    const float extraBuildingHeightMultiplier = 0.5f;    // Height multiplier for extra buildings
 
     //Data
     vector<Vertex> m_vertices;
     vector<Vertex> m_lines;
     
     void pushVertexData(wolf::VertexBuffer*& vBuffer, wolf::VertexDeclaration*& vDecl, vector<Vertex>& vertices);
-    vec3 calculateQuadNormal(const Point& p1, const Point& p2);
 
     Building determineBuildingDetails(const vector<Point>& polygon);
     void BuildingToVerticies(const Building& building, vector<Vertex>& m_vertices, float ground);
 
     void buildVertexData();
-    void computeChunks();
     void sweepToBlocks();
 
 public:

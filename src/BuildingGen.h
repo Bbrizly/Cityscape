@@ -6,7 +6,7 @@
 #include <vector>
 #include <array>
 #include <random>
-#include "Types.h" // For Building, District, Point, etc.
+#include "Types.h"
 using namespace std;
 
 class BuildingGen {

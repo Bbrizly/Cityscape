@@ -183,27 +183,25 @@ int main() {
 #include "../samplefw/SampleRunner.h"
 #include "Program.h"
 
-class Bassam: public wolf::App
+class Week2: public wolf::App
 {
 private:
-    SampleRunner CityscapeRunner;
+    SampleRunner m_sampleRunner;
     Program* program;
 public:
-    Bassam() : App("Citscape - Bassam")
+    Week2() : App("Citscape - Bassam")
     {
         program = new Program(this);
-        CityscapeRunner.addSample(new Program(this));
-
-        
+        m_sampleRunner.addSample(new Program(this));
     }
 
-    ~Bassam()
+    ~Week2()
     {
     }
 
     void update(float dt) override
     {
-        CityscapeRunner.update(dt);
+        m_sampleRunner.update(dt);
         
         if(isKeyJustDown('1') || isKeyJustDown('r'))
         {
@@ -217,11 +215,11 @@ public:
 
     void render() override
     {
-        CityscapeRunner.render(m_width, m_height);
+        m_sampleRunner.render(m_width, m_height);
     }
 };
 
 int main(int, char**) {
-    Bassam cityscape;
-    cityscape.run();
+    Week2 week2;
+    week2.run();
 }

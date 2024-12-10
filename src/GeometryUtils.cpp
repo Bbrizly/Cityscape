@@ -108,12 +108,6 @@ Point GeometryUtils::getPerpendicularDirVector(std::pair<Point,Point> edge, cons
     }
 }
 
-Line GeometryUtils::moveLineInDirection(const Line& line, const Point& direction, double distance) {
-    double displacement = line.a * direction.x * distance + line.b * direction.y * distance;
-    double newC = line.c + displacement;
-    return {line.a, line.b, newC};
-}
-
 Point GeometryUtils::movePointInDirection(const Point& point, const Point& direction, double distance) {
     double magnitude = sqrt(direction.x * direction.x + direction.y * direction.y);
     if (magnitude < 1e-9) {
@@ -150,4 +144,9 @@ Line GeometryUtils::makePerpendicularLine(const Line& originalLine) {
     double b = -originalLine.a;
     double c = originalLine.c;
     return {a, b, c};
+}
+
+glm::vec3 GeometryUtils::calculateQuadNormal(const Point& p1, const Point& p2) {
+    Point temp = getDirectionVector(p1,p2);
+    return glm::vec3(temp.y,0.0f,-temp.x);
 }

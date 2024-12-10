@@ -1,48 +1,6 @@
 #include "CityGen.h"
 using namespace std; using namespace glm;
 
-
-
-void CityGen::computeChunks() {
-    m_chunks = m_voronoiCells;
-    unsigned int seed = static_cast<unsigned int>(time(nullptr));
-    mt19937 gen(seed);
-    std::uniform_int_distribution<int> chanceDist(1, 8);
-
-    float minimumArea = 600.0f;
-    float minimumEdgeLength = 50.0f;
-
-    vector<vector<Point>> tempPolygonList;
-    for(auto currentChunk : m_chunks) {
-        if (PolygonUtils::calculatePolygonArea(currentChunk) <= minimumArea
-         || currentChunk.size() <= 3)
-        {
-            tempPolygonList.push_back(currentChunk);
-            continue;
-        }
-
-        pair<Point, Point> largestEdge = PolygonUtils::findLargestEdge(currentChunk);
-        float edgeLength = (float)PolygonUtils::distanceBetweenPoints(largestEdge.first, largestEdge.second);
-
-        if (edgeLength <= minimumEdgeLength) {
-            tempPolygonList.push_back(currentChunk);
-            continue;
-        }
-
-        uniform_int_distribution<int> splitDist(0, static_cast<int>(currentChunk.size() - 1));
-        int index = splitDist(gen);
-
-        Line cut = GeometryUtils::CreateLineFromPoints(currentChunk[index], currentChunk[(index+1)%currentChunk.size()]);
-        cut = PolygonUtils::moveLineToCenter(cut, currentChunk);
-
-        auto clipped = PolygonUtils::clipPolygon(currentChunk, cut);
-        tempPolygonList.push_back(clipped.first);
-        tempPolygonList.push_back(clipped.second);
-    }
-    m_chunks = tempPolygonList;
-    m_voronoiCells = tempPolygonList;
-}
-
 Building CityGen::determineBuildingDetails(const vector<Point>& polygon)
 {
     return m_buildingGen->generateBuildingDetails(polygon, districtCenter);
@@ -69,7 +27,7 @@ void CityGen::BuildingToVerticies(const Building& building, vector<Vertex>& m_ve
         float width = (float)PolygonUtils::distanceBetweenPoints(p1,p2);
         float tileU = width / texWidth;
         float tileV = wallHeight / texHeight;
-        glm::vec3 normal = calculateQuadNormal(p1, p2);
+        glm::vec3 normal = GeometryUtils::calculateQuadNormal(p1, p2);
 
         Vertex v1 = { (GLfloat)p1.x, ground, (GLfloat)p1.y, r, g, b, a,
         0.0f,0.0f,
@@ -305,11 +263,6 @@ void CityGen::sweepToBlocks()
     }
 }
 
-glm::vec3 CityGen::calculateQuadNormal(const Point& p1, const Point& p2) {
-    Point temp = GeometryUtils::getDirectionVector(p1,p2);
-    return vec3(temp.y,0.0f,-temp.x);
-}
-
 void CityGen::pushVertexData(wolf::VertexBuffer*& vBuffer, wolf::VertexDeclaration*& vDecl, vector<Vertex>& vertices)
 {
     vBuffer = wolf::BufferManager::CreateVertexBuffer(vertices.data(), vertices.size() * sizeof(Vertex));
@@ -498,6 +451,8 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     m_program->SetUniform("u_texture", 0);
     m_arrayTexture->Bind(0);
 
+    #pragma region Day & NIght
+
     float hours = fmod(m_timer*2,cyceLength);
     float normalizedTime = hours / cyceLength;
 
@@ -511,7 +466,6 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     float ambientStrength = 0.2f + 0.2f * dayFactor; 
     glm::vec3 dynamicAmbient(ambientStrength);
     glm::vec3 dynamicLightColor = glm::mix(glm::vec3(0.5f,0.5f,0.7f), glm::vec3(1.0f,1.0f,0.9f), dayFactor);
-
     m_program->SetUniform("u_time", m_timer);
     m_program->SetUniform("u_lightDir", glm::normalize(lightDir));
     m_program->SetUniform("u_lightColor", dynamicLightColor);
@@ -524,9 +478,11 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     float desiredLitProbability = 0.3f;
-    float u_windowLitFactor = (1.0f - dayFactor) * desiredLitProbability;
+    float u_windowLitFactor = ((1.0f - dayFactor) * desiredLitProbability) - 0.05f;
     u_windowLitFactor = glm::clamp(u_windowLitFactor, 0.0f, 1.0f);
     m_program->SetUniform("u_windowLitFactor", u_windowLitFactor);
+    
+    #pragma endregion
 
     m_vertexDecl->Bind();
     glDrawArrays(GL_TRIANGLES, 0, m_numVertices);

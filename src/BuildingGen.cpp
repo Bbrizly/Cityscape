@@ -62,7 +62,7 @@ Building BuildingGen::generateBuildingDetails(const std::vector<Point>& polygon,
 
     Point centroid = PolygonUtils::getCentroid(polygon);
     double dist = PolygonUtils::distanceBetweenPoints(centroid, districtCenter);
-    float normalizedDist = std::clamp((float)(dist / m_districtRadius), 0.0f, 1.0f);
+    float normalizedDist = glm::clamp((float)(dist / m_districtRadius), 0.0f, 1.0f);
 
     float industrialThreshold = m_districtRadius / 3.0f;
     float commercialThreshold = (2.0f * m_districtRadius) / 3.0f;
@@ -88,7 +88,6 @@ Building BuildingGen::createIndustrialBuilding(const std::vector<Point>& polygon
     std::uniform_int_distribution<int> storyDist(m_IndustrialMinStories, m_IndustrialMaxStories);
     int baseStories = storyDist(gen);
 
-    // heightFactor example
     float industrialThreshold = m_districtRadius / 3.0f;
     float heightFactor = 2.0f - (float)(dist / industrialThreshold);
 

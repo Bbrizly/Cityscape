@@ -76,30 +76,6 @@ Point PolygonUtils::getCentroid(std::vector<Point> polygon) {
     return {centroidX, centroidY};
 }
 
-bool PolygonUtils::isConvex(const std::vector<Point>& polygon) {
-    if (polygon.size() < 3) return false;
-    bool sign = false;
-    size_t n = polygon.size();
-    for (size_t i = 0; i < n; i++) {
-        size_t j = (i + 1) % n;
-        size_t k = (i + 2) % n;
-        double dx1 = polygon[j].x - polygon[i].x;
-        double dy1 = polygon[j].y - polygon[i].y;
-        double dx2 = polygon[k].x - polygon[j].x;
-        double dy2 = polygon[k].y - polygon[j].y;
-        double cross = dx1 * dy2 - dy1 * dx2;
-        if (i == 0) {
-            sign = cross > 0;
-        }
-        else {
-            if ((cross > 0) != sign) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
 Line PolygonUtils::moveLineToCenter(Line l, std::vector<Point> polygon) {
     Point centroid = getCentroid(polygon);
     return GeometryUtils::moveToPoint(l, centroid);
