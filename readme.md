@@ -1,6 +1,11 @@
-Bassam Kamal - 367032 | Cityscape - 12/10/2024
+# CS-4350 Project
 
-# Controls:
+## Bassam Kamal - 367032 | Cityscape - 12/10/2024
+
+![s4.png]("https://github.com/Bbrizly/Cityscape\screenshots\s4.png")
+
+
+## Controls:
 WASD            for movement (forwards, backwards, left, right)
 Left Shift      to speed up
 Space           for up
@@ -8,7 +13,7 @@ Left Control    for down
 R               to regenerate city
 Y               to invert mouse Y axis
 
-# Prerequisites & How to run:
+## Prerequisites & How to run:
 - CMake
 - C++ Compiler: MinGW-W64 or compatible
 Dependencies:
@@ -21,7 +26,7 @@ Choose MinGW-W64 compiler and click Configure
 Then choose to run ./sample.exe file
 
 
-# Requirements
+## Requirements
 For my assignment I chose to do:
 - All core requirements
 - Road Generation
@@ -30,10 +35,12 @@ For my assignment I chose to do:
 - Some extra stuff as well
 
 Edits to wolf;
+dfd
+
 - Added an automatic Texture Array initialization by just adding file names [W_Texture],[W_TextureManager]
 - Changed [W_App] to allow locking the cursor
 
-# Explanation of my thought process and choices:
+## Explanation of my thought process and choices:
 
 Attached next to this readme file is the Cityscape Documented pdf where I go more in depth about my choices and ideas throughout the whole process. Towards the end the CityScape Documented pdf ends up being more of a To-DO list rather than documenting the process. I would have liked to have more time to document the process and explain the thought process behind each choice.
 
@@ -64,3 +71,11 @@ After that I added a Day & Night cycle to the scene. This was done by changing t
 Finally I added a ground, sidewalks, building districts and special buildings to give the scene more depth and interest. This was done by creating different colourschemes and shapes for each district and giving the industrial district the special building that is stacked up into a tower shape.
 
 I hope that the code, this and the pdf document will be enough to give you the jist of the whole project.
+
+## More Screenshots:
+
+![s2.png]("https://github.com/Bbrizly/Cityscape\screenshots\s2.png")
+![s3.png]("https://github.com/Bbrizly/Cityscape\screenshots\s3.png")
+![s5.png]("https://github.com/Bbrizly/Cityscape\screenshots\s5.png")
+![s6.png]("https://github.com/Bbrizly/Cityscape\screenshots\s6.png")
+![s1.png]("https://github.com/Bbrizly/Cityscape\screenshots\s1.png")
