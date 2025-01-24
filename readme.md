@@ -74,8 +74,8 @@ I hope that the code, this and the pdf document will be enough to give you the j
 
 ## More Screenshots:
 
-![s2.png]("https://github.com/Bbrizly/blob/main/Cityscape\screenshots\s2.png")
-![s3.png]("https://github.com/Bbrizly/blob/main/Cityscape\screenshots\s3.png")
-![s5.png]("https://github.com/Bbrizly/blob/main/Cityscape\screenshots\s5.png")
-![s6.png]("https://github.com/Bbrizly/blob/main/Cityscape\screenshots\s6.png")
-![s1.png]("https://github.com/Bbrizly/blob/main/Cityscape\screenshots\s1.png")
+![s2.png](https://github.com/Bbrizly/Cityscape/blob/main/screenshots/s2.png)
+![s3.png](https://github.com/Bbrizly/Cityscape/blob/main/screenshots/s3.png)
+![s5.png](https://github.com/Bbrizly/Cityscape/blob/main/screenshots/s5.png)
+![s6.png](https://github.com/Bbrizly/Cityscape/blob/main/screenshots/s6.png)
+![s1.png](https://github.com/Bbrizly/Cityscape/blob/main/screenshots/s1.png)
