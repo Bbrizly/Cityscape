@@ -7,7 +7,6 @@ using namespace glm;
 
 Program::~Program()
 {
-    delete m_pOrbitCam;
     delete m_pCamera;
 }
 
@@ -37,6 +36,8 @@ void Program::init()
 void Program::update(float x) 
 {
 	m_timer += x;
+
+    city.getCameraPos(m_pCamera->getPosition());
     
     if(m_pCamera) {m_pCamera->update(x);}
     // if (m_pOrbitCam) {m_pOrbitCam->update(x);}

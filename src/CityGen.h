@@ -41,6 +41,8 @@ private:
     vector<vector<Point>> debugs2;
     
     BuildingGen* m_buildingGen;
+    glm::vec3 cameraPosition = glm::vec3(0.0f);
+    
     void initBuildingGenerator();
 
     bool Debug = true;
@@ -121,6 +123,7 @@ private:
     void sweepToBlocks();
 
 public:
+    void getCameraPos(glm::vec3 cameraPos);
     void generate(GLuint program);
     void deGenerate();
     void reGenerate();

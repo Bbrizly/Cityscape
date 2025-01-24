@@ -14,7 +14,6 @@ private:
     GLuint m_vao = 0; 
     float m_timer = 0;
     FirstPersonCamera* m_pCamera = nullptr;
-    OrbitCamera* m_pOrbitCam = nullptr;
 public:
     Program(wolf::App* pApp) : Sample(pApp,"Plane") {}
     ~Program();

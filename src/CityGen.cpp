@@ -6,6 +6,11 @@ Building CityGen::determineBuildingDetails(const vector<Point>& polygon)
     return m_buildingGen->generateBuildingDetails(polygon, districtCenter);
 }
 
+void CityGen::getCameraPos(glm::vec3 cameraPos)
+{
+    cameraPosition = cameraPos;
+}
+
 void CityGen::BuildingToVerticies(const Building& building, vector<Vertex>& m_vertices, float ground)
 {
     if (building.polygons.size() < 3 || building.height <= 0.0f) { 
@@ -451,7 +456,7 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     m_program->SetUniform("u_texture", 0);
     m_arrayTexture->Bind(0);
 
-    #pragma region Day & NIght
+    #pragma region Day & NIght AND SPECUALARLRRRRR 
 
     float hours = fmod(m_timer*2,cyceLength);
     float normalizedTime = hours / cyceLength;
@@ -470,6 +475,12 @@ void CityGen::render(const glm::mat4& proj, const glm::mat4& view, float m_timer
     m_program->SetUniform("u_lightDir", glm::normalize(lightDir));
     m_program->SetUniform("u_lightColor", dynamicLightColor);
     m_program->SetUniform("u_ambient", dynamicAmbient);
+
+    float specularStrength = 15.5f * dayFactor;
+
+    m_program->SetUniform("u_viewPos", cameraPosition);
+    m_program->SetUniform("u_specularStrength", specularStrength);
+    m_program->SetUniform("u_shininess", 10.0f);
 
     glm::vec3 dayColor = glm::vec3(0.5f, 0.7f, 1.0f);
     glm::vec3 nightColor = glm::vec3(0.0f, 0.0f, 0.1f);

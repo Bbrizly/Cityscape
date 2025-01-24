@@ -12,16 +12,19 @@ out vec4 v_color;
 out vec2 v_uv1;
 out float v_layer;
 out vec3 v_normal;
+out vec3 v_worldPos;
 
 void main()
 {
-    gl_Position = projection * view * world * vec4(a_position,1.0f);
-	v_color = a_color;
+    vec4 worldPos = world * vec4(a_position, 1.0);
+    gl_Position = projection * view * worldPos;
+    v_color = a_color;
     v_uv1 = a_uv1;
-    
+
     mat3 normalMatrix = mat3(transpose(inverse(world)));
     vec3 transformedNormal = normalize(normalMatrix * a_normal);
-    v_normal = a_normal;
-    
+    v_normal = transformedNormal;
+
     v_layer = a_uv2;
+    v_worldPos = worldPos.xyz;
 }
