@@ -2,7 +2,7 @@
 
 ## Bassam Kamal - 367032 | Cityscape - 12/10/2024
 
-![s4.png]("https://github.com/Bbrizly/blob/main/Cityscape\screenshots\s4.png")
+![s4.png](https://github.com/Bbrizly/Cityscape/blob/main/screenshots/s4.png)
 
 
 ## Controls:
